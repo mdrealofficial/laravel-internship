@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Edit, Trash2, Loader2, UserPlus, Copy, Star, Users } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Department, Intern, InternshipStatus } from '@/types/database';
 import SkillAssessmentModal from '@/components/admin/SkillAssessmentModal';
 import BulkSkillAssessmentModal from '@/components/admin/BulkSkillAssessmentModal';
@@ -32,6 +33,9 @@ const InternManagement = () => {
   const [bulkAssessmentOpen, setBulkAssessmentOpen] = useState(false);
   const [roleTitles, setRoleTitles] = useState<string[]>([]);
   const [staffList, setStaffList] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -208,17 +212,22 @@ const InternManagement = () => {
     setDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this intern?')) return;
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
 
     try {
-      const { error } = await supabase.from('interns').delete().eq('id', id);
+      const { error } = await supabase.from('interns').delete().eq('id', deletingId);
       if (error) throw error;
 
       toast({ title: 'Success', description: 'Intern deleted' });
       fetchData();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeletingId(null);
     }
   };
 
@@ -441,7 +450,10 @@ const InternManagement = () => {
                             <Star className="h-4 w-4 text-amber-500" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(intern)}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(intern.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => {
+                            setDeletingId(intern.id);
+                            setDeleteDialogOpen(true);
+                          }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -465,6 +477,31 @@ const InternManagement = () => {
         onOpenChange={setBulkAssessmentOpen}
         onSaved={fetchData}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete this intern's record and remove them from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Intern
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

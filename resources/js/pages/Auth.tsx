@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { getAssetUrl } from '@/lib/utils';
 
 const Auth = () => {
   const { signIn, user, userRole } = useAuth();
@@ -16,6 +18,25 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('setting_value')
+          .eq('setting_key', 'company_logo_url')
+          .maybeSingle();
+        if (data?.setting_value) {
+          setLogoUrl(data.setting_value);
+        }
+      } catch (err) {
+        console.error('Error fetching logo:', err);
+      }
+    };
+    fetchLogo();
+  }, []);
 
   React.useEffect(() => {
     if (user && userRole) {
@@ -50,10 +71,9 @@ const Auth = () => {
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">D5</span>
-            </div>
-            <span className="font-bold text-2xl text-foreground">DIGI5 LTD</span>
+            {logoUrl && (
+              <img src={getAssetUrl(logoUrl)} alt="Company Logo" className="h-16 w-auto object-contain mx-auto" />
+            )}
           </div>
           <p className="text-muted-foreground">Admin & Staff Portal</p>
         </div>

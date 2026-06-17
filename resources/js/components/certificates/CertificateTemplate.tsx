@@ -42,14 +42,39 @@ export function CertificateTemplate({ data, template }: Props) {
 
 function CompanyLogo({ url, className, fallbackText = 'D5', fallbackClass }: { url?: string | null; className?: string; fallbackText?: string; fallbackClass?: string }) {
   if (url) {
-    return <img src={url} alt="Company Logo" className={className} />;
+    return (
+      <div 
+        className={className} 
+        style={{ 
+          backgroundImage: `url(${url})`, 
+          backgroundSize: 'contain', 
+          backgroundPosition: 'center', 
+          backgroundRepeat: 'no-repeat',
+          width: '100%',
+          height: '100%'
+        }} 
+        aria-label="Company Logo"
+      />
+    );
   }
   return <span className={fallbackClass}>{fallbackText}</span>;
 }
 
-function SignatureImage({ url, fallbackText = 'Authorized Signature' }: { url?: string | null; fallbackText?: string }) {
+function SignatureImage({ url }: { url?: string | null }) {
   if (url) {
-    return <img src={url} alt="Signature" className="h-8 w-auto object-contain" />;
+    return (
+      <div 
+        style={{ 
+          backgroundImage: `url(${url})`, 
+          backgroundSize: 'contain', 
+          backgroundPosition: 'center', 
+          backgroundRepeat: 'no-repeat',
+          height: '2rem',
+          width: '7rem',
+          display: 'inline-block'
+        }} 
+      />
+    );
   }
   return null;
 }
@@ -64,9 +89,9 @@ function RoyalCert({ data }: { data: CertificateData }) {
       <div className="absolute bottom-4 left-4 w-16 h-16 border-l-4 border-b-4 border-amber-600/50 rounded-bl-lg" />
       <div className="absolute bottom-4 right-4 w-16 h-16 border-r-4 border-b-4 border-amber-600/50 rounded-br-lg" />
       <div className="relative h-full flex flex-col items-center justify-center px-16 py-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full object-cover" fallbackText="D5" fallbackClass="text-white font-bold text-lg" />
+        <div style={{ display: 'flex', alignItems: 'center' }} className="gap-3 mb-2">
+          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-lg" />
           </div>
           <span className="font-serif text-2xl font-bold text-amber-800 tracking-wide">DIGI5 LTD</span>
         </div>
@@ -106,9 +131,9 @@ function ModernCert({ data }: { data: CertificateData }) {
       <div className="absolute top-0 right-0 w-80 h-80" style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%)' }} />
       <div className="absolute bottom-0 left-0 w-80 h-80" style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%)' }} />
       <div className="relative h-full flex flex-col items-center justify-center px-20 py-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center overflow-hidden">
-            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full object-cover" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
+        <div style={{ display: 'flex', alignItems: 'center' }} className="gap-4 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
           </div>
           <div className="h-6 w-[1px] bg-white/20" />
           <span className="text-white/80 font-light tracking-widest text-sm">DIGI5 LTD</span>
@@ -155,11 +180,19 @@ function ElegantCert({ data }: { data: CertificateData }) {
       <div className="absolute inset-5 border border-stone-400/30" />
       <div className="absolute inset-7 border border-stone-400/20" />
       <div className="relative h-full flex flex-col items-center justify-center px-20 py-8">
-        <div className="flex items-center gap-6 mb-3">
+        <div style={{ display: 'flex', alignItems: 'center' }} className="gap-6 mb-3">
           <div className="w-20 h-[1px] bg-gradient-to-r from-transparent via-stone-500 to-transparent" />
-          <div className="w-9 h-9 border border-stone-400 rotate-45 flex items-center justify-center overflow-hidden">
+          <div className="w-9 h-9 border border-stone-400 rotate-45 flex items-center justify-center overflow-hidden flex-shrink-0">
             {data.companyLogoUrl ? (
-              <img src={data.companyLogoUrl} alt="Logo" className="w-6 h-6 object-contain -rotate-45" />
+              <div 
+                className="w-6 h-6 -rotate-45"
+                style={{ 
+                  backgroundImage: `url(${data.companyLogoUrl})`, 
+                  backgroundSize: 'contain', 
+                  backgroundPosition: 'center', 
+                  backgroundRepeat: 'no-repeat',
+                }}
+              />
             ) : (
               <div className="w-5 h-5 bg-stone-700 flex items-center justify-center">
                 <span className="text-white text-[10px] font-bold -rotate-45">D5</span>
@@ -229,9 +262,9 @@ function GradientCert({ data }: { data: CertificateData }) {
       </div>
       <div className="relative h-full flex flex-col items-center justify-center px-20 py-8 z-10">
         <div className="absolute top-5 left-0 right-0 flex justify-center">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center overflow-hidden">
-              <CompanyLogo url={data.companyLogoUrl} className="w-full h-full object-cover" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
+          <div style={{ display: 'flex', alignItems: 'center' }} className="gap-3">
+            <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+              <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
             </div>
             <span className="text-white font-medium tracking-wider text-sm">DIGI5 LTD</span>
           </div>
@@ -287,13 +320,13 @@ function MinimalCert({ data }: { data: CertificateData }) {
       {/* Subtle top accent line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200" />
       <div className="h-full flex flex-col items-center justify-center px-24 py-10">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center overflow-hidden">
-            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full object-cover" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
+        <div style={{ display: 'flex', alignItems: 'center' }} className="gap-4 mb-8">
+          <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
+            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
           </div>
-          <div>
-            <p className="font-bold text-slate-900 text-lg tracking-wider">DIGI5 LTD</p>
-            <p className="text-slate-500 text-xs tracking-widest">INTERNSHIP PROGRAM</p>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p className="font-bold text-slate-900 text-lg leading-tight tracking-wider">DIGI5 LTD</p>
+            <p className="text-slate-500 text-xs leading-none tracking-widest mt-1">INTERNSHIP PROGRAM</p>
           </div>
         </div>
         <h1 className="text-5xl font-extralight text-slate-900 tracking-widest mb-6">CERTIFICATE</h1>

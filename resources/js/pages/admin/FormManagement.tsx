@@ -20,7 +20,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2, Copy, Users } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2, Copy, Users, Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ApplicationForm } from '@/types/database';
 import { format } from 'date-fns';
 
@@ -29,6 +39,9 @@ export default function FormManagement() {
   const [forms, setForms] = useState<ApplicationForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchForms();
@@ -49,18 +62,20 @@ export default function FormManagement() {
     setLoading(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this form? All applications will also be deleted.')) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
 
-    const { error } = await supabase.from('application_forms').delete().eq('id', id);
+    const { error } = await supabase.from('application_forms').delete().eq('id', deletingId);
     if (error) {
       toast.error('Failed to delete form');
     } else {
       toast.success('Form deleted');
       fetchForms();
     }
+    setDeleting(false);
+    setDeleteDialogOpen(false);
+    setDeletingId(null);
   };
 
   const handleToggleActive = async (form: ApplicationForm) => {
@@ -230,7 +245,10 @@ export default function FormManagement() {
                             {form.is_active ? 'Deactivate' : 'Activate'}
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleDelete(form.id)}
+                            onClick={() => {
+                              setDeletingId(form.id);
+                              setDeleteDialogOpen(true);
+                            }}
                             className="text-destructive"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -246,6 +264,31 @@ export default function FormManagement() {
           </Table>
         </div>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete this application form. All applicant submissions and files associated with this form will be lost forever.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Form
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, GripVertical, Pencil } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Department, DepartmentSkill } from '@/types/database';
 
 interface DepartmentSkillsManagerProps {
@@ -20,6 +21,9 @@ const DepartmentSkillsManager: React.FC<DepartmentSkillsManagerProps> = ({ open,
   const [loading, setLoading] = useState(true);
   const [skills, setSkills] = useState<DepartmentSkill[]>([]);
   const [editingSkill, setEditingSkill] = useState<DepartmentSkill | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({ skill_name: '', skill_description: '' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -96,16 +100,21 @@ const DepartmentSkillsManager: React.FC<DepartmentSkillsManagerProps> = ({ open,
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this skill? Existing assessments will also be deleted.')) return;
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
 
     try {
-      const { error } = await supabase.from('department_skills').delete().eq('id', id);
+      const { error } = await supabase.from('department_skills').delete().eq('id', deletingId);
       if (error) throw error;
       toast({ title: 'Success', description: 'Skill deleted' });
       fetchSkills();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeletingId(null);
     }
   };
 
@@ -189,7 +198,10 @@ const DepartmentSkillsManager: React.FC<DepartmentSkillsManagerProps> = ({ open,
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(skill)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(skill.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => {
+                      setDeletingId(skill.id);
+                      setDeleteDialogOpen(true);
+                    }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -199,6 +211,31 @@ const DepartmentSkillsManager: React.FC<DepartmentSkillsManagerProps> = ({ open,
           )}
         </div>
       </DialogContent>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete this skill. Any existing intern assessments evaluated for this skill will also be deleted forever.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Skill
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

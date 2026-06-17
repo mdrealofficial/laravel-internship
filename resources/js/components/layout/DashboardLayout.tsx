@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { supabase } from '@/integrations/supabase/client';
+import { getAssetUrl } from '@/lib/utils';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -57,6 +59,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('setting_value')
+          .eq('setting_key', 'company_logo_url')
+          .maybeSingle();
+        if (data?.setting_value) {
+          setLogoUrl(data.setting_value);
+        }
+      } catch (err) {
+        console.error('Error fetching logo:', err);
+      }
+    };
+    fetchLogo();
+  }, []);
 
   const navItems = userRole === 'admin' 
     ? adminNavItems 
@@ -129,13 +150,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="h-16 flex items-center justify-center border-b border-sidebar-border">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-sidebar-primary-foreground font-bold text-lg">D5</span>
-              </div>
-              {!collapsed && (
-                <span className="font-bold text-xl text-sidebar-foreground">DIGI5 LTD</span>
+          <div className="h-16 flex items-center justify-center border-b border-sidebar-border px-4">
+            <Link to="/" className="flex items-center justify-center w-full">
+              {logoUrl && (
+                <img
+                  src={getAssetUrl(logoUrl)}
+                  alt="Company Logo"
+                  className={cn("h-10 w-auto object-contain", collapsed ? "max-h-8" : "max-h-10")}
+                />
               )}
             </Link>
           </div>

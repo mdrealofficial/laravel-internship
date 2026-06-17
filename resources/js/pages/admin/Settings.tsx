@@ -18,6 +18,7 @@ import { SMTPSettingsCard } from '@/components/settings/SMTPSettingsCard';
 import { SMSSettingsCard } from '@/components/settings/SMSSettingsCard';
 import { NotificationTemplateManager } from '@/components/settings/NotificationTemplateManager';
 import { NavMenuManager } from '@/components/settings/NavMenuManager';
+import { getAssetUrl } from '@/lib/utils';
 
 // Import preset patterns
 import circuitPattern from '@/assets/patterns/circuit-pattern.png';
@@ -239,6 +240,7 @@ const Settings = () => {
 
   const removeImage = async (settingKey: keyof SiteSettings) => {
     if (!user) return;
+    if (!confirm(`Are you sure you want to remove the ${settingKey.replace('_url', '').replace('_', ' ')}?`)) return;
     
     try {
       const { error } = await supabase
@@ -347,6 +349,7 @@ const Settings = () => {
 
   const removePatternImage = async () => {
     if (!user) return;
+    if (!confirm('Are you sure you want to remove the custom pattern image?')) return;
     
     try {
       const { error } = await supabase
@@ -581,7 +584,7 @@ const Settings = () => {
                     {siteSettings.company_logo_url ? (
                       <div className="relative">
                         <img
-                          src={siteSettings.company_logo_url}
+                          src={getAssetUrl(siteSettings.company_logo_url)}
                           alt="Company Logo"
                           className="h-20 w-20 object-contain border rounded-lg bg-muted"
                         />
@@ -627,7 +630,7 @@ const Settings = () => {
                     {siteSettings.signature_url ? (
                       <div className="relative">
                         <img
-                          src={siteSettings.signature_url}
+                          src={getAssetUrl(siteSettings.signature_url)}
                           alt="Signature"
                           className="h-16 w-32 object-contain border rounded-lg bg-muted"
                         />
@@ -673,7 +676,7 @@ const Settings = () => {
                     {siteSettings.favicon_url ? (
                       <div className="relative">
                         <img
-                          src={siteSettings.favicon_url}
+                          src={getAssetUrl(siteSettings.favicon_url)}
                           alt="Favicon"
                           className="h-12 w-12 object-contain border rounded-lg bg-muted"
                         />
@@ -785,7 +788,7 @@ const Settings = () => {
                         <div 
                           className="h-20 w-20 border rounded-lg overflow-hidden"
                           style={{ 
-                            backgroundImage: `url(${siteSettings.certificate_pattern_url})`,
+                            backgroundImage: `url(${getAssetUrl(siteSettings.certificate_pattern_url)})`,
                             backgroundSize: '40px',
                             backgroundRepeat: 'repeat',
                             opacity: siteSettings.certificate_pattern_opacity / 100

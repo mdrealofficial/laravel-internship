@@ -36,7 +36,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, MoreHorizontal, Eye, Download, UserPlus, Mail } from 'lucide-react';
-import { Application, ApplicationForm, ApplicationStatus, FormField } from '@/types/database';
+import { Application, ApplicationForm, ApplicationStatus, FormField, Department } from '@/types/database';
 import { format } from 'date-fns';
 
 const statusColors: Record<ApplicationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -54,10 +54,12 @@ export default function ApplicationManagement() {
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [forms, setForms] = useState<ApplicationForm[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedFormFilter, setSelectedFormFilter] = useState<string>(formFilter || 'all');
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
   const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
   const [detailApplication, setDetailApplication] = useState<Application | null>(null);
   const [responses, setResponses] = useState<{ field: FormField; value: string | null; file_url: string | null }[]>([]);
@@ -65,12 +67,34 @@ export default function ApplicationManagement() {
 
   useEffect(() => {
     fetchForms();
+    fetchDepartments();
     fetchApplications();
   }, []);
 
   const fetchForms = async () => {
     const { data } = await supabase.from('application_forms').select('*').order('title');
     if (data) setForms(data);
+  };
+
+  const fetchDepartments = async () => {
+    const { data } = await supabase.from('departments').select('*').order('name');
+    if (data) setDepartments(data);
+  };
+
+  const getDepartmentName = (deptId: string | null | undefined) => {
+    if (!deptId) return '—';
+    const dept = departments.find((d) => d.id === deptId);
+    return dept ? dept.name : '—';
+  };
+
+  const handleDeptFilterChange = (value: string) => {
+    setSelectedDeptFilter(value);
+    if (value !== 'all' && selectedFormFilter !== 'all') {
+      const selectedForm = forms.find((f) => f.id === selectedFormFilter);
+      if (selectedForm && selectedForm.department_id !== value) {
+        setSelectedFormFilter('all');
+      }
+    }
   };
 
   const fetchApplications = async () => {
@@ -270,7 +294,8 @@ export default function ApplicationManagement() {
         app.applicant_email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
       const matchesForm = selectedFormFilter === 'all' || app.form_id === selectedFormFilter;
-      return matchesSearch && matchesStatus && matchesForm;
+      const matchesDept = selectedDeptFilter === 'all' || app.form?.department_id === selectedDeptFilter;
+      return matchesSearch && matchesStatus && matchesForm && matchesDept;
     });
   };
 
@@ -311,17 +336,32 @@ export default function ApplicationManagement() {
               className="pl-10"
             />
           </div>
+          <Select value={selectedDeptFilter} onValueChange={handleDeptFilterChange}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.id}>
+                  {dept.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={selectedFormFilter} onValueChange={setSelectedFormFilter}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by form" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Forms</SelectItem>
-              {forms.map((form) => (
-                <SelectItem key={form.id} value={form.id}>
-                  {form.title}
-                </SelectItem>
-              ))}
+              {forms
+                .filter((form) => selectedDeptFilter === 'all' || form.department_id === selectedDeptFilter)
+                .map((form) => (
+                  <SelectItem key={form.id} value={form.id}>
+                    {form.title}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -408,7 +448,16 @@ export default function ApplicationManagement() {
                         <p className="text-sm text-muted-foreground">{app.applicant_email}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{app.form?.title || '—'}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{app.form?.title || '—'}</p>
+                        {app.form?.department_id && (
+                          <span className="inline-block mt-1 text-[10px] font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                            {getDepartmentName(app.form.department_id)}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={statusColors[app.status]}>{app.status}</Badge>
                     </TableCell>
@@ -496,6 +545,16 @@ export default function ApplicationManagement() {
                       <p className="text-muted-foreground">Applied</p>
                       <p className="font-medium">
                         {format(new Date(detailApplication.created_at), 'MMM d, yyyy h:mm a')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Form</p>
+                      <p className="font-medium">{detailApplication.form?.title || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Department</p>
+                      <p className="font-medium">
+                        {getDepartmentName(detailApplication.form?.department_id)}
                       </p>
                     </div>
                   </div>

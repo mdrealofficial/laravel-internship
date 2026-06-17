@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import SkillsDisplay from '@/components/verify/SkillsDisplay';
+import { getAssetUrl } from '@/lib/utils';
 
 interface SkillAssessment {
   id: string;
@@ -242,18 +243,8 @@ const Verify = () => {
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Company Logo" className="h-10 w-auto object-contain" />
-            ) : (
-              <>
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-lg">
-                  <span className="text-primary-foreground font-bold text-sm">D5</span>
-                </div>
-                <div>
-                  <span className="font-bold text-xl">DIGI5 LTD</span>
-                  <p className="text-xs text-muted-foreground">Certificate Verification</p>
-                </div>
-              </>
+            {logoUrl && (
+              <img src={getAssetUrl(logoUrl)} alt="Company Logo" className="h-10 w-auto object-contain" />
             )}
           </Link>
           <nav className="flex items-center gap-4">
@@ -468,10 +459,10 @@ const Verify = () => {
                     certificateId: result.certificate_id,
                     issuedDate: formatDate(result.issued_date || ''),
                     qrCodeUrl: `${window.location.origin}/verify?id=${result.certificate_id}`,
-                    companyLogoUrl: siteSettings.company_logo_url,
-                    signatureUrl: siteSettings.signature_url,
+                    companyLogoUrl: getAssetUrl(siteSettings.company_logo_url),
+                    signatureUrl: getAssetUrl(siteSettings.signature_url),
                     patternEnabled: siteSettings.certificate_pattern_enabled,
-                    patternUrl: siteSettings.certificate_pattern_url,
+                    patternUrl: getAssetUrl(siteSettings.certificate_pattern_url),
                     patternOpacity: siteSettings.certificate_pattern_opacity,
                   }}
                 />

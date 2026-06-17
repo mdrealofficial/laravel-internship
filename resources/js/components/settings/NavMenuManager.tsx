@@ -7,6 +7,16 @@ import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, GripVertical, ExternalLink, Link as LinkIcon, Loader2, Save } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MenuItem {
   id: string;
@@ -23,6 +33,9 @@ export const NavMenuManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newItem, setNewItem] = useState({ label: '', url: '', is_external: false });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchMenuItems();
@@ -95,19 +108,25 @@ export const NavMenuManager = () => {
     }
   };
 
-  const deleteMenuItem = async (id: string) => {
+  const deleteMenuItem = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
     try {
       const { error } = await supabase
         .from('nav_menu_items')
         .delete()
-        .eq('id', id);
+        .eq('id', deletingId);
 
       if (error) throw error;
 
-      setMenuItems(menuItems.filter(item => item.id !== id));
+      setMenuItems(menuItems.filter(item => item.id !== deletingId));
       toast({ title: 'Success', description: 'Menu item deleted' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeletingId(null);
     }
   };
 
@@ -270,7 +289,10 @@ export const NavMenuManager = () => {
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => deleteMenuItem(item.id)}
+                        onClick={() => {
+                          setDeletingId(item.id);
+                          setDeleteDialogOpen(true);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -282,6 +304,31 @@ export const NavMenuManager = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete this navigation menu item. The link will be removed from the public website header immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                deleteMenuItem();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Item
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

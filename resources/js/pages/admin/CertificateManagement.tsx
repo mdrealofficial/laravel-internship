@@ -10,6 +10,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Award, Loader2, CheckCircle, XCircle, Eye, Palette, Layers, RotateCcw, Download, Send } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Certificate, Intern } from '@/types/database';
 import { CertificateTemplate, templateOptions, TemplateType } from '@/components/certificates/CertificateTemplate';
 import html2canvas from 'html2canvas';
@@ -35,6 +45,10 @@ const CertificateManagement = () => {
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({ company_logo_url: null, signature_url: null, certificate_default_theme: 'modern' });
   const [downloading, setDownloading] = useState(false);
   const [sendingNotification, setSendingNotification] = useState<string | null>(null);
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  const [actionCertId, setActionCertId] = useState<string | null>(null);
+  const [acting, setActing] = useState(false);
   const certificateRef = useRef<HTMLDivElement>(null);
 
   const downloadPdf = async () => {
@@ -220,14 +234,15 @@ const CertificateManagement = () => {
     }
   };
 
-  const revokeCertificate = async (id: string) => {
-    if (!confirm('Revoke this certificate?')) return;
+  const handleRevoke = async () => {
+    if (!actionCertId) return;
+    setActing(true);
 
     try {
       const { error } = await supabase.from('certificates').update({
         status: 'revoked',
         updated_at: new Date().toISOString(),
-      }).eq('id', id);
+      }).eq('id', actionCertId);
 
       if (error) throw error;
 
@@ -235,17 +250,22 @@ const CertificateManagement = () => {
       fetchData();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setActing(false);
+      setRevokeConfirmOpen(false);
+      setActionCertId(null);
     }
   };
 
-  const restoreCertificate = async (id: string) => {
-    if (!confirm('Restore this certificate?')) return;
+  const handleRestore = async () => {
+    if (!actionCertId) return;
+    setActing(true);
 
     try {
       const { error } = await supabase.from('certificates').update({
         status: 'issued',
         updated_at: new Date().toISOString(),
-      }).eq('id', id);
+      }).eq('id', actionCertId);
 
       if (error) throw error;
 
@@ -253,6 +273,10 @@ const CertificateManagement = () => {
       fetchData();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setActing(false);
+      setRestoreConfirmOpen(false);
+      setActionCertId(null);
     }
   };
 
@@ -561,12 +585,18 @@ const CertificateManagement = () => {
                             )}
                           </Button>
                           {cert.status === 'issued' && (
-                            <Button variant="ghost" size="sm" onClick={() => revokeCertificate(cert.id)} title="Revoke">
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              setActionCertId(cert.id);
+                              setRevokeConfirmOpen(true);
+                            }} title="Revoke">
                               <XCircle className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
                           {cert.status === 'revoked' && (
-                            <Button variant="ghost" size="sm" onClick={() => restoreCertificate(cert.id)} title="Restore">
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              setActionCertId(cert.id);
+                              setRestoreConfirmOpen(true);
+                            }} title="Restore">
                               <RotateCcw className="h-4 w-4 text-emerald-600" />
                             </Button>
                           )}
@@ -614,6 +644,56 @@ const CertificateManagement = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      <AlertDialog open={revokeConfirmOpen} onOpenChange={setRevokeConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Certificate?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will mark the certificate as revoked. Verification pages will display it as invalid, but you can restore it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={acting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleRevoke();
+              }}
+              disabled={acting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {acting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
+              Revoke
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={restoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Certificate?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will restore the certificate to "issued" status, making it valid and verifiable on the public validation portal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={acting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleRestore();
+              }}
+              disabled={acting}
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              {acting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
