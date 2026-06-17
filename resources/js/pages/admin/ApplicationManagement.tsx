@@ -1,0 +1,549 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Search, MoreHorizontal, Eye, Download, UserPlus, Mail } from 'lucide-react';
+import { Application, ApplicationForm, ApplicationStatus, FormField } from '@/types/database';
+import { format } from 'date-fns';
+
+const statusColors: Record<ApplicationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  submitted: 'secondary',
+  reviewing: 'outline',
+  shortlisted: 'default',
+  approved: 'default',
+  rejected: 'destructive',
+};
+
+export default function ApplicationManagement() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const formFilter = searchParams.get('form');
+
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [forms, setForms] = useState<ApplicationForm[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedFormFilter, setSelectedFormFilter] = useState<string>(formFilter || 'all');
+  const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
+  const [detailApplication, setDetailApplication] = useState<Application | null>(null);
+  const [responses, setResponses] = useState<{ field: FormField; value: string | null; file_url: string | null }[]>([]);
+  const [adminNotes, setAdminNotes] = useState('');
+
+  useEffect(() => {
+    fetchForms();
+    fetchApplications();
+  }, []);
+
+  const fetchForms = async () => {
+    const { data } = await supabase.from('application_forms').select('*').order('title');
+    if (data) setForms(data);
+  };
+
+  const fetchApplications = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*, form:application_forms(*)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast.error('Failed to load applications');
+    } else {
+      setApplications(data || []);
+    }
+    setLoading(false);
+  };
+
+  const fetchResponses = async (applicationId: string, formId: string) => {
+    const [responsesRes, fieldsRes] = await Promise.all([
+      supabase.from('application_responses').select('*').eq('application_id', applicationId),
+      supabase.from('form_fields').select('*').eq('form_id', formId).order('display_order'),
+    ]);
+
+    if (fieldsRes.data) {
+      const responseMap = new Map(
+        (responsesRes.data || []).map((r) => [r.field_id, { value: r.response_value, file_url: r.file_url }])
+      );
+      setResponses(
+        fieldsRes.data.map((field) => ({
+          field,
+          value: responseMap.get(field.id)?.value || null,
+          file_url: responseMap.get(field.id)?.file_url || null,
+        }))
+      );
+    }
+  };
+
+  const handleViewDetails = async (app: Application) => {
+    setDetailApplication(app);
+    setAdminNotes(app.admin_notes || '');
+    await fetchResponses(app.id, app.form_id);
+  };
+
+  const handleStatusChange = async (id: string, status: ApplicationStatus) => {
+    // Find the application to get contact details
+    const app = applications.find(a => a.id === id);
+    
+    const { error } = await supabase
+      .from('applications')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to update status');
+    } else {
+      toast.success('Status updated');
+      fetchApplications();
+      if (detailApplication?.id === id) {
+        setDetailApplication({ ...detailApplication, status });
+      }
+      
+      // Send notification to applicant about status change
+      if (app) {
+        sendStatusNotification(app, status);
+      }
+    }
+  };
+
+  const sendStatusNotification = async (app: Application, newStatus: ApplicationStatus) => {
+    try {
+      // Determine template key based on status
+      let templateKey = '';
+      switch (newStatus) {
+        case 'reviewing':
+          templateKey = 'application_reviewing';
+          break;
+        case 'shortlisted':
+          templateKey = 'application_shortlisted';
+          break;
+        case 'approved':
+          templateKey = 'application_approved';
+          break;
+        case 'rejected':
+          templateKey = 'application_rejected';
+          break;
+        default:
+          return; // No notification for submitted status
+      }
+
+      await supabase.functions.invoke('send-notification', {
+        body: {
+          template_key: templateKey,
+          recipient_email: app.applicant_email,
+          recipient_phone: app.applicant_phone || undefined,
+          data: {
+            applicant_name: app.applicant_name,
+            position: app.form?.title || 'Position',
+            status: newStatus,
+            company_name: 'DIGI5 LTD',
+          },
+        },
+      });
+      console.log('Status notification sent for:', templateKey);
+    } catch (error) {
+      console.error('Failed to send status notification:', error);
+      // Don't show error to user - notification is secondary to status update
+    }
+  };
+
+  const handleBulkStatusChange = async (status: ApplicationStatus) => {
+    if (selectedApplications.length === 0) return;
+
+    // Get applications to send notifications
+    const selectedApps = applications.filter(a => selectedApplications.includes(a.id));
+
+    const { error } = await supabase
+      .from('applications')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .in('id', selectedApplications);
+
+    if (error) {
+      toast.error('Failed to update statuses');
+    } else {
+      toast.success(`${selectedApplications.length} applications updated`);
+      
+      // Send notifications to all selected applications
+      for (const app of selectedApps) {
+        sendStatusNotification(app, status);
+      }
+      
+      setSelectedApplications([]);
+      fetchApplications();
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    if (!detailApplication) return;
+
+    const { error } = await supabase
+      .from('applications')
+      .update({ admin_notes: adminNotes })
+      .eq('id', detailApplication.id);
+
+    if (error) {
+      toast.error('Failed to save notes');
+    } else {
+      toast.success('Notes saved');
+    }
+  };
+
+  const handleApproveAndCreateIntern = async (app: Application) => {
+    // Update application status
+    await handleStatusChange(app.id, 'approved');
+    
+    // Navigate to intern creation with pre-filled data including phone
+    navigate(`/admin/interns?create=true&name=${encodeURIComponent(app.applicant_name)}&email=${encodeURIComponent(app.applicant_email)}&phone=${encodeURIComponent(app.applicant_phone || '')}&department=${app.form?.department_id || ''}`);
+  };
+
+  const handleExport = () => {
+    const filtered = getFilteredApplications();
+    const csv = [
+      ['Name', 'Email', 'Phone', 'Form', 'Status', 'Applied Date'].join(','),
+      ...filtered.map((app) =>
+        [
+          app.applicant_name,
+          app.applicant_email,
+          app.applicant_phone || '',
+          app.form?.title || '',
+          app.status,
+          format(new Date(app.created_at), 'yyyy-MM-dd'),
+        ].join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `applications-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
+  const getFilteredApplications = () => {
+    return applications.filter((app) => {
+      const matchesSearch =
+        app.applicant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.applicant_email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+      const matchesForm = selectedFormFilter === 'all' || app.form_id === selectedFormFilter;
+      return matchesSearch && matchesStatus && matchesForm;
+    });
+  };
+
+  const filteredApplications = getFilteredApplications();
+
+  const toggleSelectAll = () => {
+    if (selectedApplications.length === filteredApplications.length) {
+      setSelectedApplications([]);
+    } else {
+      setSelectedApplications(filteredApplications.map((a) => a.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedApplications((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Applications</h1>
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={selectedFormFilter} onValueChange={setSelectedFormFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by form" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Forms</SelectItem>
+              {forms.map((form) => (
+                <SelectItem key={form.id} value={form.id}>
+                  {form.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="submitted">Submitted</SelectItem>
+              <SelectItem value="reviewing">Reviewing</SelectItem>
+              <SelectItem value="shortlisted">Shortlisted</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedApplications.length > 0 && (
+          <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+            <span className="text-sm font-medium">{selectedApplications.length} selected</span>
+            <Select onValueChange={(v) => handleBulkStatusChange(v as ApplicationStatus)}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Change status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="reviewing">Reviewing</SelectItem>
+                <SelectItem value="shortlisted">Shortlisted</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedApplications([])}>
+              Clear
+            </Button>
+          </div>
+        )}
+
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      filteredApplications.length > 0 &&
+                      selectedApplications.length === filteredApplications.length
+                    }
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>Applicant</TableHead>
+                <TableHead>Form</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Applied</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : filteredApplications.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No applications found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredApplications.map((app) => (
+                  <TableRow key={app.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedApplications.includes(app.id)}
+                        onCheckedChange={() => toggleSelect(app.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{app.applicant_name}</p>
+                        <p className="text-sm text-muted-foreground">{app.applicant_email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{app.form?.title || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusColors[app.status]}>{app.status}</Badge>
+                    </TableCell>
+                    <TableCell>{format(new Date(app.created_at), 'MMM d, yyyy')}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetails(app)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => window.open(`mailto:${app.applicant_email}`)}
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Send Email
+                          </DropdownMenuItem>
+                          {app.status !== 'approved' && (
+                            <DropdownMenuItem onClick={() => handleApproveAndCreateIntern(app)}>
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Approve & Create Intern
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Application Detail Sheet */}
+      <Sheet open={!!detailApplication} onOpenChange={() => setDetailApplication(null)}>
+        <SheetContent className="sm:max-w-xl overflow-y-auto">
+          {detailApplication && (
+            <>
+              <SheetHeader>
+                <SheetTitle>Application Details</SheetTitle>
+              </SheetHeader>
+              <div className="space-y-6 mt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Applicant Info</h3>
+                    <Badge variant={statusColors[detailApplication.status]}>
+                      {detailApplication.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Name</p>
+                      <p className="font-medium">{detailApplication.applicant_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Email</p>
+                      <p className="font-medium">{detailApplication.applicant_email}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Phone</p>
+                      <p className="font-medium">{detailApplication.applicant_phone || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Applied</p>
+                      <p className="font-medium">
+                        {format(new Date(detailApplication.created_at), 'MMM d, yyyy h:mm a')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Change Status</h3>
+                  <Select
+                    value={detailApplication.status}
+                    onValueChange={(v) => handleStatusChange(detailApplication.id, v as ApplicationStatus)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="submitted">Submitted</SelectItem>
+                      <SelectItem value="reviewing">Reviewing</SelectItem>
+                      <SelectItem value="shortlisted">Shortlisted</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Form Responses</h3>
+                  <div className="space-y-4">
+                    {responses.map((r) => (
+                      <div key={r.field.id} className="space-y-1">
+                        <p className="text-sm text-muted-foreground">{r.field.label}</p>
+                        {r.file_url ? (
+                          <a
+                            href={r.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline text-sm"
+                          >
+                            View uploaded file
+                          </a>
+                        ) : (
+                          <p className="text-sm font-medium">{r.value || '—'}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Admin Notes</h3>
+                  <Textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Add internal notes..."
+                    rows={4}
+                  />
+                  <Button onClick={handleSaveNotes} size="sm">
+                    Save Notes
+                  </Button>
+                </div>
+
+                {detailApplication.status !== 'approved' && (
+                  <Button
+                    onClick={() => handleApproveAndCreateIntern(detailApplication)}
+                    className="w-full"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Approve & Create Intern Account
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </DashboardLayout>
+  );
+}
