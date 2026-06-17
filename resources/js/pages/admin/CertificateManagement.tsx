@@ -173,11 +173,11 @@ const CertificateManagement = () => {
       if (intern && intern.profile?.email) {
         // Send notification (email and SMS if configured)
         try {
-          await supabase.functions.invoke('send-notification', {
+          const { data } = await supabase.functions.invoke('send-notification', {
             body: {
               template_key: 'certificate_issued',
               recipient_email: intern.profile.email,
-              recipient_phone: (intern as any).phone || null,
+              recipient_phone: intern.phone || null,
               data: {
                 intern_name: intern.profile.full_name || 'Intern',
                 certificate_id: certId,
@@ -187,10 +187,28 @@ const CertificateManagement = () => {
               },
             },
           });
+
+          let deliveryStatus = 'failed';
+          if (data && data.success) {
+            const emailSuccess = data.results?.email?.success;
+            const smsSuccess = data.results?.sms?.success;
+            if (emailSuccess && smsSuccess) {
+              deliveryStatus = 'sent (Email & SMS)';
+            } else if (emailSuccess) {
+              deliveryStatus = 'sent (Email)';
+            } else if (smsSuccess) {
+              deliveryStatus = 'sent (SMS)';
+            } else {
+              deliveryStatus = 'sent';
+            }
+          }
+          
+          await supabase.from('certificates').update({ delivery_status: deliveryStatus }).eq('certificate_id', certId);
           console.log('Certificate notification sent successfully');
         } catch (notifyError) {
           console.error('Failed to send notification:', notifyError);
           // Don't fail the certificate issuance if notification fails
+          await supabase.from('certificates').update({ delivery_status: 'failed' }).eq('certificate_id', certId);
         }
       }
 
@@ -265,13 +283,39 @@ const CertificateManagement = () => {
 
       if (error) throw error;
 
+      let deliveryStatus = 'failed';
+      if (data && data.success) {
+        const emailSuccess = data.results?.email?.success;
+        const smsSuccess = data.results?.sms?.success;
+        if (emailSuccess && smsSuccess) {
+          deliveryStatus = 'sent (Email & SMS)';
+        } else if (emailSuccess) {
+          deliveryStatus = 'sent (Email)';
+        } else if (smsSuccess) {
+          deliveryStatus = 'sent (SMS)';
+        } else {
+          deliveryStatus = 'sent';
+        }
+      }
+
+      await supabase
+        .from('certificates')
+        .update({ delivery_status: deliveryStatus })
+        .eq('id', cert.id);
+
       toast({ 
         title: 'Notification Sent', 
         description: `Certificate info sent to ${cert.intern.profile.email}${cert.intern.phone ? ' and ' + cert.intern.phone : ''}` 
       });
+      fetchData();
     } catch (error: any) {
       console.error('Failed to send notification:', error);
+      await supabase
+        .from('certificates')
+        .update({ delivery_status: 'failed' })
+        .eq('id', cert.id);
       toast({ title: 'Error', description: 'Failed to send notification', variant: 'destructive' });
+      fetchData();
     } finally {
       setSendingNotification(null);
     }
@@ -461,6 +505,7 @@ const CertificateManagement = () => {
                       <TableHead>Template</TableHead>
                       <TableHead>Issued Date</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Delivery Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -483,6 +528,21 @@ const CertificateManagement = () => {
                         <TableCell>{getTemplateBadge(cert.template_type || 'royal')}</TableCell>
                         <TableCell>{cert.issued_date ? new Date(cert.issued_date).toLocaleDateString() : '-'}</TableCell>
                         <TableCell>{getStatusBadge(cert.status)}</TableCell>
+                        <TableCell>
+                          {cert.delivery_status ? (
+                            <Badge variant="outline" className={
+                              cert.delivery_status.includes('failed') 
+                                ? 'bg-red-500/10 text-red-600 border-red-500/20' 
+                                : cert.delivery_status.includes('sent')
+                                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                                : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                            }>
+                              {cert.delivery_status}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button variant="ghost" size="sm" onClick={() => openPreview(cert)} title="Preview">
                             <Eye className="h-4 w-4" />

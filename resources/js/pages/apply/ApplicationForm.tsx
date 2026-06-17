@@ -133,6 +133,43 @@ export default function ApplicationFormPage() {
       const { error: respError } = await supabase.from('application_responses').insert(responses);
       if (respError) throw respError;
 
+      // Send notification
+      let deliveryStatus = 'failed';
+      try {
+        const { data: notifyData } = await supabase.functions.invoke('send-notification', {
+          body: {
+            template_key: 'application_submitted',
+            recipient_email: data.applicant_email,
+            recipient_phone: data.applicant_phone || null,
+            data: {
+              applicant_name: data.applicant_name,
+              form_title: form.title,
+            },
+          },
+        });
+
+        if (notifyData && notifyData.success) {
+          const emailSuccess = notifyData.results?.email?.success;
+          const smsSuccess = notifyData.results?.sms?.success;
+          if (emailSuccess && smsSuccess) {
+            deliveryStatus = 'sent (Email & SMS)';
+          } else if (emailSuccess) {
+            deliveryStatus = 'sent (Email)';
+          } else if (smsSuccess) {
+            deliveryStatus = 'sent (SMS)';
+          } else {
+            deliveryStatus = 'sent';
+          }
+        }
+      } catch (notifyErr) {
+        console.error('Failed to send notification:', notifyErr);
+      }
+
+      await supabase
+        .from('applications')
+        .update({ delivery_status: deliveryStatus })
+        .eq('id', application.id);
+
       setSubmitted(true);
     } catch (error) {
       console.error(error);

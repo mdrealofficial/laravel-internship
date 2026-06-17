@@ -9,7 +9,7 @@ class Application extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['id', 'form_id', 'applicant_name', 'applicant_email', 'applicant_phone', 'status', 'admin_notes', 'reviewed_by', 'reviewed_at'];
+    protected $fillable = ['id', 'form_id', 'applicant_name', 'applicant_email', 'applicant_phone', 'status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'delivery_status'];
 
     protected $casts = [
         'reviewed_at' => 'datetime',

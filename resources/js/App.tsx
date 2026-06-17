@@ -17,6 +17,7 @@ import FormBuilder from "./pages/admin/FormBuilder";
 import ApplicationManagement from "./pages/admin/ApplicationManagement";
 import Reports from "./pages/admin/Reports";
 import Settings from "./pages/admin/Settings";
+import RoleTitleManagement from "./pages/admin/RoleTitleManagement";
 import InternDashboard from "./pages/intern/InternDashboard";
 import InternCertificate from "./pages/intern/InternCertificate";
 import StaffDashboard from "./pages/staff/StaffDashboard";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/admin/forms/:id" element={<ProtectedRoute allowedRoles={['admin']}><FormBuilder /></ProtectedRoute>} />
             <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={['admin']}><ApplicationManagement /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
+            <Route path="/admin/roles" element={<ProtectedRoute allowedRoles={['admin']}><RoleTitleManagement /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />
             
             {/* Staff Routes */}

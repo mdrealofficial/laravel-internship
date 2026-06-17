@@ -141,42 +141,52 @@ export default function ApplicationManagement() {
 
   const sendStatusNotification = async (app: Application, newStatus: ApplicationStatus) => {
     try {
-      // Determine template key based on status
-      let templateKey = '';
-      switch (newStatus) {
-        case 'reviewing':
-          templateKey = 'application_reviewing';
-          break;
-        case 'shortlisted':
-          templateKey = 'application_shortlisted';
-          break;
-        case 'approved':
-          templateKey = 'application_approved';
-          break;
-        case 'rejected':
-          templateKey = 'application_rejected';
-          break;
-        default:
-          return; // No notification for submitted status
-      }
+      // Use the seeded template key for status change
+      const templateKey = 'application_status_changed';
 
-      await supabase.functions.invoke('send-notification', {
+      const { data, error } = await supabase.functions.invoke('send-notification', {
         body: {
           template_key: templateKey,
           recipient_email: app.applicant_email,
           recipient_phone: app.applicant_phone || undefined,
           data: {
             applicant_name: app.applicant_name,
-            position: app.form?.title || 'Position',
-            status: newStatus,
+            form_title: app.form?.title || 'Position',
+            application_status: newStatus,
+            admin_notes: app.admin_notes || '',
             company_name: 'DIGI5 LTD',
           },
         },
       });
-      console.log('Status notification sent for:', templateKey);
+
+      let deliveryStatus = 'failed';
+      if (data && data.success) {
+        const emailSuccess = data.results?.email?.success;
+        const smsSuccess = data.results?.sms?.success;
+        if (emailSuccess && smsSuccess) {
+          deliveryStatus = 'sent (Email & SMS)';
+        } else if (emailSuccess) {
+          deliveryStatus = 'sent (Email)';
+        } else if (smsSuccess) {
+          deliveryStatus = 'sent (SMS)';
+        } else {
+          deliveryStatus = 'sent';
+        }
+      }
+
+      await supabase
+        .from('applications')
+        .update({ delivery_status: deliveryStatus })
+        .eq('id', app.id);
+        
+      fetchApplications();
     } catch (error) {
       console.error('Failed to send status notification:', error);
-      // Don't show error to user - notification is secondary to status update
+      await supabase
+        .from('applications')
+        .update({ delivery_status: 'failed' })
+        .eq('id', app.id);
+      fetchApplications();
     }
   };
 
@@ -365,6 +375,7 @@ export default function ApplicationManagement() {
                 <TableHead>Applicant</TableHead>
                 <TableHead>Form</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Delivery Status</TableHead>
                 <TableHead>Applied</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -372,13 +383,13 @@ export default function ApplicationManagement() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : filteredApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No applications found.
                   </TableCell>
                 </TableRow>
@@ -401,6 +412,21 @@ export default function ApplicationManagement() {
                     <TableCell>
                       <Badge variant={statusColors[app.status]}>{app.status}</Badge>
                     </TableCell>
+                    <TableCell>
+                      {app.delivery_status ? (
+                        <Badge variant="outline" className={
+                          app.delivery_status.includes('failed') 
+                            ? 'bg-red-500/10 text-red-600 border-red-500/20' 
+                            : app.delivery_status.includes('sent')
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                            : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                        }>
+                          {app.delivery_status}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{format(new Date(app.created_at), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -420,10 +446,10 @@ export default function ApplicationManagement() {
                             <Mail className="h-4 w-4 mr-2" />
                             Send Email
                           </DropdownMenuItem>
-                          {app.status !== 'approved' && (
+                          {app.status === 'approved' && (
                             <DropdownMenuItem onClick={() => handleApproveAndCreateIntern(app)}>
                               <UserPlus className="h-4 w-4 mr-2" />
-                              Approve & Create Intern
+                              Create Intern Account
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -530,13 +556,13 @@ export default function ApplicationManagement() {
                   </Button>
                 </div>
 
-                {detailApplication.status !== 'approved' && (
+                {detailApplication.status === 'approved' && (
                   <Button
                     onClick={() => handleApproveAndCreateIntern(detailApplication)}
                     className="w-full"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Approve & Create Intern Account
+                    Create Intern Account
                   </Button>
                 )}
               </div>

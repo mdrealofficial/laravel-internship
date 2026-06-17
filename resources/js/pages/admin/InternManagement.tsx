@@ -30,6 +30,8 @@ const InternManagement = () => {
   const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
   const [selectedInternForAssessment, setSelectedInternForAssessment] = useState<Intern | null>(null);
   const [bulkAssessmentOpen, setBulkAssessmentOpen] = useState(false);
+  const [roleTitles, setRoleTitles] = useState<string[]>([]);
+  const [staffList, setStaffList] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -74,12 +76,24 @@ const InternManagement = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch interns and departments
-      const [internsRes, deptsRes, profilesRes] = await Promise.all([
+      // Fetch interns, departments, roles and staff list
+      const [internsRes, deptsRes, profilesRes, rolesRes, staffRolesRes] = await Promise.all([
         supabase.from('interns').select('*').order('created_at', { ascending: false }),
         supabase.from('departments').select('*').order('name'),
         supabase.from('profiles').select('user_id, full_name, email'),
+        supabase.from('role_titles').select('*').order('title'),
+        supabase.from('user_roles').select('user_id').eq('role', 'staff'),
       ]);
+
+      if (rolesRes.data) {
+        setRoleTitles(rolesRes.data.map(r => r.title));
+      }
+
+      if (staffRolesRes.data && profilesRes.data) {
+        const staffIds = staffRolesRes.data.map(r => r.user_id);
+        const staffProfiles = profilesRes.data.filter(p => staffIds.includes(p.user_id));
+        setStaffList(staffProfiles.map(p => p.full_name).filter(Boolean) as string[]);
+      }
 
       if (internsRes.data && profilesRes.data) {
         const profilesMap = new Map(profilesRes.data.map(p => [p.user_id, p]));
@@ -308,7 +322,14 @@ const InternManagement = () => {
                   )}
                   <div className="space-y-2">
                     <Label htmlFor="roleTitle">Role Title</Label>
-                    <Input id="roleTitle" value={formData.roleTitle} onChange={(e) => setFormData({ ...formData, roleTitle: e.target.value })} required placeholder="e.g., Software Development Intern" />
+                    <Select value={formData.roleTitle} onValueChange={(v) => setFormData({ ...formData, roleTitle: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select role title" /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from(new Set([...roleTitles, formData.roleTitle].filter(Boolean))).map((title) => (
+                          <SelectItem key={title} value={title}>{title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="department">Department</Label>
@@ -323,7 +344,14 @@ const InternManagement = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="supervisor">Supervisor Name</Label>
-                    <Input id="supervisor" value={formData.supervisorName} onChange={(e) => setFormData({ ...formData, supervisorName: e.target.value })} />
+                    <Select value={formData.supervisorName} onValueChange={(v) => setFormData({ ...formData, supervisorName: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select supervisor" /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from(new Set([...staffList, formData.supervisorName].filter(Boolean))).map((name) => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>

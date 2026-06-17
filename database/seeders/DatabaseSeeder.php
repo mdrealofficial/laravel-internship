@@ -252,5 +252,21 @@ class DatabaseSeeder extends Seeder
                 );
             }
         }
+
+        // Seed Role Titles
+        $roles = [
+            'Software Engineer Intern',
+            'Frontend Developer Intern',
+            'Backend Developer Intern',
+            'UI/UX Design Intern',
+            'Digital Marketing Intern',
+            'Data Analyst Intern',
+            'Project Manager Intern',
+            'Quality Assurance Intern'
+        ];
+
+        foreach ($roles as $role) {
+            \App\Models\RoleTitle::updateOrCreate(['title' => $role]);
+        }
     }
 }

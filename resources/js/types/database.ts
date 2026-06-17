@@ -72,6 +72,7 @@ export interface Intern {
   end_date: string | null;
   status: InternshipStatus;
   description: string | null;
+  phone?: string | null;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -88,6 +89,7 @@ export interface Certificate {
   issued_by: string | null;
   qr_code_data: string | null;
   template_type: string | null;
+  delivery_status?: string | null;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -134,6 +136,7 @@ export interface Application {
   admin_notes: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  delivery_status?: string | null;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -150,4 +153,11 @@ export interface ApplicationResponse {
   created_at: string;
   // Joined data
   field?: FormField;
+}
+
+export interface RoleTitle {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
 }

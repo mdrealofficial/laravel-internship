@@ -323,7 +323,7 @@ class EdgeFunctionCompatController extends Controller
     private function sendEmail($config, $to, $subject, $body)
     {
         try {
-            $provider = $config['provider'] ?? 'resend';
+            $provider = $config['provider'] ?? (empty($config['host']) ? 'resend' : 'smtp');
 
             if ($provider === 'resend' && !empty($config['api_key'])) {
                 $response = Http::withToken($config['api_key'])
@@ -339,6 +339,21 @@ class EdgeFunctionCompatController extends Controller
                 } else {
                     return ['success' => false, 'error' => $response->json()['message'] ?? 'Resend API call failed', 'response' => $response->json()];
                 }
+            }
+
+            // Set SMTP configuration dynamically if host/username are provided in config
+            if (!empty($config['host'])) {
+                config([
+                    'mail.mailers.smtp.transport' => 'smtp',
+                    'mail.mailers.smtp.host' => $config['host'],
+                    'mail.mailers.smtp.port' => intval($config['port'] ?? 587),
+                    'mail.mailers.smtp.encryption' => ($config['secure'] ?? true) ? 'tls' : null,
+                    'mail.mailers.smtp.username' => $config['username'] ?? null,
+                    'mail.mailers.smtp.password' => $config['password'] ?? null,
+                    'mail.from.address' => $config['from_email'] ?? 'no-reply@example.com',
+                    'mail.from.name' => $config['from_name'] ?? 'DIGI5',
+                ]);
+                Mail::purge();
             }
 
             // Fallback: Laravel standard Mail

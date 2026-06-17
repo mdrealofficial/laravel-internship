@@ -17,7 +17,8 @@ import {
   FileEdit,
   Inbox,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,6 +32,7 @@ const adminNavItems = [
   { path: '/admin/forms', label: 'Forms', icon: FileEdit },
   { path: '/admin/applications', label: 'Applications', icon: Inbox },
   { path: '/admin/interns', label: 'Interns', icon: Users },
+  { path: '/admin/roles', label: 'Role Titles', icon: Briefcase },
   { path: '/admin/staff', label: 'Staff', icon: UserCog },
   { path: '/admin/departments', label: 'Departments', icon: Building2 },
   { path: '/admin/certificates', label: 'Certificates', icon: Award },

@@ -56,6 +56,7 @@ class SupabaseCompatController extends Controller
             'notification_templates' => \App\Models\NotificationTemplate::class,
             'notification_logs' => \App\Models\NotificationLog::class,
             'users' => \App\Models\User::class,
+            'role_titles' => \App\Models\RoleTitle::class,
         ];
         return $map[$table] ?? null;
     }

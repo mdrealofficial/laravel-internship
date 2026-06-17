@@ -9,7 +9,7 @@ class Certificate extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['id', 'certificate_id', 'intern_id', 'template_type', 'issued_date', 'issued_by', 'status', 'qr_code_data'];
+    protected $fillable = ['id', 'certificate_id', 'intern_id', 'template_type', 'issued_date', 'issued_by', 'status', 'qr_code_data', 'delivery_status'];
 
     protected $casts = [
         'issued_date' => 'date',

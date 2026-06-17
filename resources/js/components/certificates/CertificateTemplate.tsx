@@ -103,8 +103,8 @@ function ModernCert({ data }: { data: CertificateData }) {
   return (
     <div className="relative w-[960px] h-[540px] bg-slate-950 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-cyan-600/20" />
-      <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-0 right-0 w-80 h-80" style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%)' }} />
+      <div className="absolute bottom-0 left-0 w-80 h-80" style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%)' }} />
       <div className="relative h-full flex flex-col items-center justify-center px-20 py-8">
         <div className="flex items-center gap-4 mb-4">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center overflow-hidden">
