@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Verify from "./pages/Verify";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import InternManagement from "./pages/admin/InternManagement";
+import BatchMessaging from "./pages/admin/BatchMessaging";
 import DepartmentManagement from "./pages/admin/DepartmentManagement";
 import CertificateManagement from "./pages/admin/CertificateManagement";
 import StaffManagement from "./pages/admin/StaffManagement";
@@ -52,6 +53,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/interns" element={<ProtectedRoute allowedRoles={['admin']}><InternManagement /></ProtectedRoute>} />
+            <Route path="/admin/batch-messaging" element={<ProtectedRoute allowedRoles={['admin']}><BatchMessaging /></ProtectedRoute>} />
             <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['admin']}><DepartmentManagement /></ProtectedRoute>} />
             <Route path="/admin/certificates" element={<ProtectedRoute allowedRoles={['admin']}><CertificateManagement /></ProtectedRoute>} />
             <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={['admin']}><StaffManagement /></ProtectedRoute>} />

@@ -343,8 +343,8 @@ export default function ApplicationManagement() {
     // Update application status
     await handleStatusChange(app.id, 'approved');
     
-    // Navigate to intern creation with pre-filled data including phone
-    navigate(`/admin/interns?create=true&name=${encodeURIComponent(app.applicant_name)}&email=${encodeURIComponent(app.applicant_email)}&phone=${encodeURIComponent(app.applicant_phone || '')}&department=${app.department_id || app.form?.department_id || ''}`);
+    // Navigate to intern creation with pre-filled data including phone and batch name
+    navigate(`/admin/interns?create=true&name=${encodeURIComponent(app.applicant_name)}&email=${encodeURIComponent(app.applicant_email)}&phone=${encodeURIComponent(app.applicant_phone || '')}&department=${app.department_id || app.form?.department_id || ''}&batch_name=${encodeURIComponent(app.form?.batch_name || '')}`);
   };
 
   const handleExport = () => {

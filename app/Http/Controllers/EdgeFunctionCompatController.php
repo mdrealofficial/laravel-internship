@@ -112,6 +112,7 @@ class EdgeFunctionCompatController extends Controller
         $status = $request->input('status', 'pending');
         $description = $request->input('description');
         $phone = $request->input('phone');
+        $batchName = $request->input('batchName');
 
         try {
             $existingProfile = Profile::where('email', $email)->first();
@@ -162,6 +163,7 @@ class EdgeFunctionCompatController extends Controller
                 'id' => (string) Str::uuid(),
                 'user_id' => $userId,
                 'department_id' => $departmentId,
+                'batch_name' => $batchName,
                 'role_title' => $roleTitle,
                 'description' => $description,
                 'phone' => $phone,
@@ -203,6 +205,67 @@ class EdgeFunctionCompatController extends Controller
             $smsSettings = NotificationSetting::where('setting_type', 'sms')->first();
 
             $results = [];
+
+            // Handle custom broadcast
+            if ($templateKey === 'custom_broadcast') {
+                $subject = $request->input('subject') ?? ($data['subject'] ?? 'Notification');
+                $body = $request->input('body') ?? ($data['body'] ?? '');
+                $smsBody = $request->input('sms_body') ?? ($data['sms_body'] ?? '');
+
+                // Personalize custom content using processTemplate
+                $subject = $this->processTemplate($subject, $data);
+                $body = $this->processTemplate($body, $data);
+                $smsBody = $this->processTemplate($smsBody, $data);
+
+                // Send Email
+                if ($recipientEmail && $body && ($smtpSettings->is_enabled || $forceSend)) {
+                    $smtpConfig = $smtpSettings->config;
+                    if ($smtpSettings->test_mode && !$forceSend) {
+                        $results['email'] = ['success' => true, 'test_mode' => true];
+                    } else {
+                        $emailResult = $this->sendEmail($smtpConfig, $recipientEmail, $subject, $body);
+                        $results['email'] = $emailResult;
+
+                        NotificationLog::create([
+                            'id' => (string) Str::uuid(),
+                            'notification_type' => 'email',
+                            'template_key' => $templateKey,
+                            'recipient' => $recipientEmail,
+                            'subject' => $subject,
+                            'body' => $body,
+                            'status' => $emailResult['success'] ? 'sent' : 'failed',
+                            'error_message' => $emailResult['error'] ?? null,
+                            'metadata' => ['custom_broadcast' => true],
+                            'sent_at' => now(),
+                        ]);
+                    }
+                }
+
+                // Send SMS
+                if ($recipientPhone && $smsBody && ($smsSettings->is_enabled || $forceSend)) {
+                    $smsConfig = $smsSettings->config;
+                    if ($smsSettings->test_mode && !$forceSend) {
+                        $results['sms'] = ['success' => true, 'test_mode' => true];
+                    } else {
+                        $smsResult = $this->sendSMS($smsConfig, $recipientPhone, $smsBody);
+                        $results['sms'] = $smsResult;
+
+                        NotificationLog::create([
+                            'id' => (string) Str::uuid(),
+                            'notification_type' => 'sms',
+                            'template_key' => $templateKey,
+                            'recipient' => $recipientPhone,
+                            'body' => $smsBody,
+                            'status' => $smsResult['success'] ? 'sent' : 'failed',
+                            'error_message' => $smsResult['error'] ?? null,
+                            'metadata' => ['custom_broadcast' => true],
+                            'sent_at' => now(),
+                        ]);
+                    }
+                }
+
+                return response()->json(['success' => true, 'results' => $results]);
+            }
 
             // Handle test SMS
             if ($templateKey === 'test_sms' && $recipientPhone) {

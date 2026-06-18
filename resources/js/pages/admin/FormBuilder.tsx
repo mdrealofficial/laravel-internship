@@ -51,6 +51,7 @@ export default function FormBuilder() {
   const [allowedDepartments, setAllowedDepartments] = useState<string[]>([]);
   const [batchName, setBatchName] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [startDate, setStartDate] = useState('');
   const [isPaid, setIsPaid] = useState(false);
   const [stipendAmount, setStipendAmount] = useState('');
   const [facilities, setFacilities] = useState<string[]>([]);
@@ -96,6 +97,7 @@ export default function FormBuilder() {
       setAllowedDepartments(form.allowed_departments || []);
       setIsActive(form.is_active ?? true);
       setDeadline(form.deadline ? form.deadline.split('T')[0] : '');
+      setStartDate(form.start_date ? form.start_date.split('T')[0] : '');
       setIsPaid(form.is_paid ?? false);
       setStipendAmount(form.stipend_amount ? String(form.stipend_amount) : '');
       setFacilities(form.facilities || []);
@@ -199,6 +201,7 @@ export default function FormBuilder() {
             allowed_departments: allowedDepartments.length > 0 ? allowedDepartments : null,
             is_active: isActive,
             deadline: deadline || null,
+            start_date: startDate || null,
             is_paid: isPaid,
             stipend_amount: isPaid && stipendAmount ? parseFloat(stipendAmount) : null,
             facilities: facilities.length > 0 ? facilities : null,
@@ -222,6 +225,7 @@ export default function FormBuilder() {
             allowed_departments: allowedDepartments.length > 0 ? allowedDepartments : null,
             is_active: isActive,
             deadline: deadline || null,
+            start_date: startDate || null,
             is_paid: isPaid,
             stipend_amount: isPaid && stipendAmount ? parseFloat(stipendAmount) : null,
             facilities: facilities.length > 0 ? facilities : null,
@@ -399,12 +403,21 @@ export default function FormBuilder() {
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label htmlFor="deadline">Deadline</Label>
+                    <Label htmlFor="deadline">Application Deadline</Label>
                     <Input
                       id="deadline"
                       type="date"
                       value={deadline}
                       onChange={(e) => setDeadline(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="start-date">Internship Start Date</Label>
+                    <Input
+                      id="start-date"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
                     />
                   </div>
                   <div className="flex items-center justify-between">

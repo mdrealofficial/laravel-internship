@@ -68,6 +68,7 @@ export interface Intern {
   id: string;
   user_id: string;
   department_id: string | null;
+  batch_name?: string | null;
   role_title: string;
   supervisor_name: string | null;
   start_date: string;
@@ -112,6 +113,7 @@ export interface ApplicationForm {
   facilities?: string[] | null;
   is_active: boolean;
   deadline: string | null;
+  start_date?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

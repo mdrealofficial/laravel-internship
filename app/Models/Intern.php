@@ -9,7 +9,7 @@ class Intern extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['id', 'user_id', 'department_id', 'role_title', 'description', 'phone', 'start_date', 'end_date', 'status', 'supervisor_name'];
+    protected $fillable = ['id', 'user_id', 'department_id', 'batch_name', 'role_title', 'description', 'phone', 'start_date', 'end_date', 'status', 'supervisor_name'];
 
     public function user()
     {

@@ -37,6 +37,11 @@ const InternManagement = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // View States
+  const [viewTab, setViewTab] = useState<'all' | 'batch' | 'department'>('all');
+  const [expandedBatches, setExpandedBatches] = useState<Record<string, boolean>>({});
+  const [expandedDepartments, setExpandedDepartments] = useState<Record<string, boolean>>({});
+
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -48,6 +53,7 @@ const InternManagement = () => {
     status: 'pending' as InternshipStatus,
     description: '',
     phone: '',
+    batchName: '',
   });
 
   // Handle pre-fill from URL params (from "Approve & Create Intern")
@@ -57,6 +63,7 @@ const InternManagement = () => {
     const email = searchParams.get('email');
     const phone = searchParams.get('phone');
     const department = searchParams.get('department');
+    const batchNameParam = searchParams.get('batch_name');
     
     if (shouldCreate === 'true') {
       setFormData(prev => ({
@@ -65,6 +72,7 @@ const InternManagement = () => {
         email: email || '',
         phone: phone || '',
         departmentId: department || '',
+        batchName: batchNameParam || '',
         startDate: new Date().toISOString().split('T')[0],
         status: 'active',
       }));
@@ -129,6 +137,7 @@ const InternManagement = () => {
           .update({
             role_title: formData.roleTitle,
             department_id: formData.departmentId || null,
+            batch_name: formData.batchName || null,
             supervisor_name: formData.supervisorName || null,
             start_date: formData.startDate,
             end_date: formData.endDate || null,
@@ -157,6 +166,7 @@ const InternManagement = () => {
             status: formData.status,
             description: formData.description || null,
             phone: formData.phone || null,
+            batchName: formData.batchName || null,
           },
         });
 
@@ -208,6 +218,7 @@ const InternManagement = () => {
       status: intern.status,
       description: intern.description || '',
       phone: (intern as any).phone || '',
+      batchName: intern.batch_name || '',
     });
     setDialogOpen(true);
   };
@@ -250,6 +261,7 @@ const InternManagement = () => {
       status: 'pending',
       description: '',
       phone: '',
+      batchName: '',
     });
   };
 
@@ -261,6 +273,31 @@ const InternManagement = () => {
       terminated: 'bg-red-500/20 text-red-600 dark:text-red-400',
     };
     return <Badge className={variants[status] || ''}>{status}</Badge>;
+  };
+
+  const getBatchGroups = () => {
+    const groups: Record<string, Intern[]> = {};
+    filteredInterns.forEach(intern => {
+      const batch = intern.batch_name || 'Unassigned';
+      if (!groups[batch]) groups[batch] = [];
+      groups[batch].push(intern);
+    });
+    return groups;
+  };
+
+  const getDepartmentGroups = () => {
+    const groups: Record<string, { dept: Department | null; interns: Intern[] }> = {};
+    filteredInterns.forEach(intern => {
+      const deptId = intern.department_id || 'unassigned';
+      if (!groups[deptId]) {
+        groups[deptId] = {
+          dept: intern.department || null,
+          interns: []
+        };
+      }
+      groups[deptId].interns.push(intern);
+    });
+    return groups;
   };
 
   const filteredInterns = interns.filter(intern =>
@@ -366,6 +403,10 @@ const InternManagement = () => {
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input id="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="e.g., +1 234 567 8900" />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="batchName">Batch Name</Label>
+                    <Input id="batchName" value={formData.batchName} onChange={(e) => setFormData({ ...formData, batchName: e.target.value })} placeholder="e.g., Batch 2026" />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="startDate">Start Date</Label>
@@ -399,6 +440,34 @@ const InternManagement = () => {
           </div>
         </div>
 
+        {/* View toggles */}
+        <div className="flex bg-muted/60 p-1 rounded-lg w-fit border border-border">
+          <Button 
+            variant={viewTab === 'all' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => setViewTab('all')}
+            className={viewTab === 'all' ? 'bg-background shadow-sm text-slate-800' : 'text-slate-600'}
+          >
+            All Interns
+          </Button>
+          <Button 
+            variant={viewTab === 'batch' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => setViewTab('batch')}
+            className={viewTab === 'batch' ? 'bg-background shadow-sm ml-1 text-slate-800' : 'ml-1 text-slate-600'}
+          >
+            Batch wise View
+          </Button>
+          <Button 
+            variant={viewTab === 'department' ? 'default' : 'ghost'} 
+            size="sm" 
+            onClick={() => setViewTab('department')}
+            className={viewTab === 'department' ? 'bg-background shadow-sm ml-1 text-slate-800' : 'ml-1 text-slate-600'}
+          >
+            Department wise View
+          </Button>
+        </div>
+
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -413,12 +482,13 @@ const InternManagement = () => {
               <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : filteredInterns.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No interns found</p>
-            ) : (
+            ) : viewTab === 'all' ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Batch</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Department</TableHead>
                       <TableHead>Status</TableHead>
@@ -434,6 +504,9 @@ const InternManagement = () => {
                             <p className="font-medium">{intern.profile?.full_name || 'Unknown'}</p>
                             <p className="text-sm text-muted-foreground">{intern.profile?.email}</p>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{intern.batch_name || 'Unassigned'}</Badge>
                         </TableCell>
                         <TableCell>{intern.role_title}</TableCell>
                         <TableCell>{intern.department?.name || '-'}</TableCell>
@@ -459,6 +532,179 @@ const InternManagement = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            ) : viewTab === 'batch' ? (
+              <div className="space-y-6">
+                {Object.entries(getBatchGroups()).map(([batchName, groupInterns]) => {
+                  const isExpanded = !!expandedBatches[batchName];
+                  const activeCount = groupInterns.filter(i => i.status === 'active').length;
+                  const completedCount = groupInterns.filter(i => i.status === 'completed').length;
+
+                  return (
+                    <Card key={batchName} className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                      <div 
+                        className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+                        onClick={() => setExpandedBatches(prev => ({ ...prev, [batchName]: !prev[batchName] }))}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <Users size={22} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg text-slate-800">{batchName}</h3>
+                            <div className="flex gap-2.5 mt-1">
+                              <span className="text-xs font-medium text-slate-500">{groupInterns.length} Total</span>
+                              <span className="text-xs font-medium text-emerald-600">• {activeCount} Active</span>
+                              <span className="text-xs font-medium text-blue-600">• {completedCount} Completed</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          {isExpanded ? 'Collapse' : 'Expand'}
+                        </Button>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 bg-slate-50/30 p-5">
+                          <div className="overflow-x-auto bg-white rounded-lg border border-slate-200">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead>Role</TableHead>
+                                  <TableHead>Department</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Start Date</TableHead>
+                                  <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {groupInterns.map((intern) => (
+                                  <TableRow key={intern.id}>
+                                    <TableCell>
+                                      <div>
+                                        <p className="font-medium text-slate-800">{intern.profile?.full_name || 'Unknown'}</p>
+                                        <p className="text-sm text-slate-500">{intern.profile?.email}</p>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-slate-700">{intern.role_title}</TableCell>
+                                    <TableCell className="text-slate-700">{intern.department?.name || '-'}</TableCell>
+                                    <TableCell>{getStatusBadge(intern.status)}</TableCell>
+                                    <TableCell className="text-slate-600">{new Date(intern.start_date).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-right">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => openAssessmentModal(intern)}
+                                        title="Assess Skills"
+                                        disabled={!intern.department_id}
+                                      >
+                                        <Star className="h-4 w-4 text-amber-500" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => handleEdit(intern)}><Edit className="h-4 w-4" /></Button>
+                                      <Button variant="ghost" size="icon" onClick={() => {
+                                        setDeletingId(intern.id);
+                                        setDeleteDialogOpen(true);
+                                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(getDepartmentGroups()).map(([deptId, group]) => {
+                  const isExpanded = !!expandedDepartments[deptId];
+                  const deptName = group.dept?.name || 'Unassigned';
+                  const activeCount = group.interns.filter(i => i.status === 'active').length;
+                  const completedCount = group.interns.filter(i => i.status === 'completed').length;
+
+                  return (
+                    <Card key={deptId} className="border border-slate-200 shadow-sm overflow-hidden bg-white">
+                      <div 
+                        className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+                        onClick={() => setExpandedDepartments(prev => ({ ...prev, [deptId]: !prev[deptId] }))}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 bg-violet-50 text-violet-600 rounded-lg">
+                            <Users size={22} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg text-slate-800">{deptName}</h3>
+                            <div className="flex gap-2.5 mt-1">
+                              <span className="text-xs font-medium text-slate-500">{group.interns.length} Total</span>
+                              <span className="text-xs font-medium text-emerald-600">• {activeCount} Active</span>
+                              <span className="text-xs font-medium text-blue-600">• {completedCount} Completed</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          {isExpanded ? 'Collapse' : 'Expand'}
+                        </Button>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 bg-slate-50/30 p-5">
+                          <div className="overflow-x-auto bg-white rounded-lg border border-slate-200">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead>Batch</TableHead>
+                                  <TableHead>Role</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Start Date</TableHead>
+                                  <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {group.interns.map((intern) => (
+                                  <TableRow key={intern.id}>
+                                    <TableCell>
+                                      <div>
+                                        <p className="font-medium text-slate-800">{intern.profile?.full_name || 'Unknown'}</p>
+                                        <p className="text-sm text-slate-500">{intern.profile?.email}</p>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline">{intern.batch_name || 'Unassigned'}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-slate-700">{intern.role_title}</TableCell>
+                                    <TableCell>{getStatusBadge(intern.status)}</TableCell>
+                                    <TableCell className="text-slate-600">{new Date(intern.start_date).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-right">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => openAssessmentModal(intern)}
+                                        title="Assess Skills"
+                                        disabled={!intern.department_id}
+                                      >
+                                        <Star className="h-4 w-4 text-amber-500" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => handleEdit(intern)}><Edit className="h-4 w-4" /></Button>
+                                      <Button variant="ghost" size="icon" onClick={() => {
+                                        setDeletingId(intern.id);
+                                        setDeleteDialogOpen(true);
+                                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </CardContent>
