@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { User, Lock, Image, Upload, Loader2, Save, Trash2, Layers, Check, Mail, MessageSquare, FileText, Menu, Award } from 'lucide-react';
+import { User, Lock, Image, Upload, Loader2, Save, Trash2, Layers, Check, Mail, MessageSquare, FileText, Menu, Award, Brain } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { templateOptions, TemplateType } from '@/components/certificates/CertificateTemplate';
 import { Slider } from '@/components/ui/slider';
@@ -53,6 +53,7 @@ interface SiteSettings {
   certificate_pattern_enabled: boolean;
   certificate_pattern_opacity: number;
   certificate_default_theme: TemplateType;
+  gemini_api_key: string | null;
 }
 
 const Settings = () => {
@@ -80,6 +81,7 @@ const Settings = () => {
     certificate_pattern_enabled: false,
     certificate_pattern_opacity: 5,
     certificate_default_theme: 'modern',
+    gemini_api_key: null,
   });
   const [savingTheme, setSavingTheme] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -87,6 +89,11 @@ const Settings = () => {
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingPattern, setUploadingPattern] = useState(false);
   const [savingPattern, setSavingPattern] = useState(false);
+
+  // Gemini API Key state
+  const [geminiApiKey, setGeminiApiKey] = useState<string | null>('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [savingApiKey, setSavingApiKey] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -122,6 +129,7 @@ const Settings = () => {
           certificate_pattern_enabled: false,
           certificate_pattern_opacity: 5,
           certificate_default_theme: 'modern',
+          gemini_api_key: null,
         };
         settings.forEach(s => {
           if (s.setting_key === 'certificate_pattern_enabled') {
@@ -135,11 +143,37 @@ const Settings = () => {
           }
         });
         setSiteSettings(settingsMap);
+        setGeminiApiKey(settingsMap.gemini_api_key || '');
       }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveGeminiApiKey = async () => {
+    if (!user) return;
+    setSavingApiKey(true);
+    
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          setting_key: 'gemini_api_key', 
+          setting_value: geminiApiKey || null,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id 
+        }, { onConflict: 'setting_key' });
+      
+      if (error) throw error;
+      
+      setSiteSettings(prev => ({ ...prev, gemini_api_key: geminiApiKey }));
+      toast({ title: 'Success', description: 'Gemini API Key saved successfully' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setSavingApiKey(false);
     }
   };
 
@@ -467,7 +501,7 @@ const Settings = () => {
             </TabsTrigger>
             <TabsTrigger value="branding" className="flex items-center gap-2 py-2.5">
               <Image className="h-4 w-4" />
-              <span className="hidden sm:inline">Branding</span>
+              <span className="hidden sm:inline">Branding & AI</span>
             </TabsTrigger>
             <TabsTrigger value="navigation" className="flex items-center gap-2 py-2.5">
               <Menu className="h-4 w-4" />
@@ -880,6 +914,48 @@ const Settings = () => {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Candidate Screening API Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-indigo-500 animate-pulse" />
+                  AI Candidate Screening (Gemini API)
+                </CardTitle>
+                <CardDescription>
+                  Configure your Google Gemini API key to enable AI Candidate Screening. If no key is set, the system will use a fallback mock generator.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+                  <div className="flex gap-2 max-w-xl">
+                    <Input
+                      id="geminiApiKey"
+                      type={showApiKey ? "text" : "password"}
+                      value={geminiApiKey || ''}
+                      onChange={(e) => setGeminiApiKey(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="font-mono"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      type="button"
+                    >
+                      {showApiKey ? "Hide" : "Show"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Get an API key from the <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">Google AI Studio</a>.
+                  </p>
+                </div>
+                <Button onClick={saveGeminiApiKey} disabled={savingApiKey}>
+                  {savingApiKey ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save API Key
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

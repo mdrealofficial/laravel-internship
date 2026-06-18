@@ -26,7 +26,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +39,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, MoreHorizontal, Eye, Download, UserPlus, Trash2, LayoutGrid, List, Calendar, Sparkles, Clock, Video, MapPin, PhoneCall, Link2, Brain, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, MoreHorizontal, Eye, Download, Trash2, LayoutGrid, List, Calendar, Sparkles, Clock, Video, MapPin, PhoneCall, Link2, Brain, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { Application, ApplicationForm, ApplicationStatus, FormField, Department } from '@/types/database';
 import { format } from 'date-fns';
 
@@ -52,7 +51,7 @@ const statusColors: Record<ApplicationStatus, 'default' | 'secondary' | 'destruc
   rejected: 'destructive',
 };
 
-export default function ApplicationManagement() {
+export default function JobApplicationManagement() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const formFilter = searchParams.get('form');
@@ -95,7 +94,11 @@ export default function ApplicationManagement() {
   }, []);
 
   const fetchForms = async () => {
-    const { data } = await supabase.from('application_forms').select('*').order('title');
+    const { data } = await supabase
+      .from('application_forms')
+      .select('*')
+      .eq('form_type', 'job')
+      .order('title');
     if (data) setForms(data);
   };
 
@@ -125,6 +128,7 @@ export default function ApplicationManagement() {
     const { data, error } = await supabase
       .from('applications')
       .select('*, form:application_forms(*), department:departments(*)')
+      .eq('form_type', 'job')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -165,7 +169,6 @@ export default function ApplicationManagement() {
   };
 
   const handleStatusChange = async (id: string, status: ApplicationStatus) => {
-    // Find the application to get contact details
     const app = applications.find(a => a.id === id);
     
     const { error } = await supabase
@@ -182,7 +185,6 @@ export default function ApplicationManagement() {
         setDetailApplication({ ...detailApplication, status });
       }
       
-      // Send notification to applicant about status change
       if (app) {
         sendStatusNotification(app, status);
       }
@@ -191,12 +193,11 @@ export default function ApplicationManagement() {
 
   const sendStatusNotification = async (app: Application, newStatus: ApplicationStatus) => {
     try {
-      // Map status to specific template key
-      let templateKey = 'application_status_changed';
-      if (newStatus === 'approved') templateKey = 'application_approved';
-      else if (newStatus === 'rejected') templateKey = 'application_rejected';
-      else if (newStatus === 'shortlisted') templateKey = 'application_shortlisted';
-      else if (newStatus === 'reviewing') templateKey = 'application_reviewing';
+      let templateKey = 'job_application_status_changed';
+      if (newStatus === 'approved') templateKey = 'job_application_approved';
+      else if (newStatus === 'rejected') templateKey = 'job_application_rejected';
+      else if (newStatus === 'shortlisted') templateKey = 'job_application_shortlisted';
+      else if (newStatus === 'reviewing') templateKey = 'job_application_reviewing';
 
       const { data, error } = await supabase.functions.invoke('send-notification', {
         body: {
@@ -247,7 +248,6 @@ export default function ApplicationManagement() {
 
   const handleDeleteApplication = async (id: string) => {
     try {
-      // First delete application responses (foreign key references)
       const { error: respError } = await supabase
         .from('application_responses')
         .delete()
@@ -255,7 +255,6 @@ export default function ApplicationManagement() {
         
       if (respError) throw respError;
 
-      // Then delete the application itself
       const { error: appError } = await supabase
         .from('applications')
         .delete()
@@ -278,7 +277,6 @@ export default function ApplicationManagement() {
   const handleBulkStatusChange = async (status: ApplicationStatus) => {
     if (selectedApplications.length === 0) return;
 
-    // Get applications to send notifications
     const selectedApps = applications.filter(a => selectedApplications.includes(a.id));
 
     const { error } = await supabase
@@ -291,7 +289,6 @@ export default function ApplicationManagement() {
     } else {
       toast.success(`${selectedApplications.length} applications updated`);
       
-      // Send notifications to all selected applications
       for (const app of selectedApps) {
         sendStatusNotification(app, status);
       }
@@ -305,7 +302,6 @@ export default function ApplicationManagement() {
     if (selectedApplications.length === 0) return;
 
     try {
-      // First delete application responses (foreign key references)
       const { error: respError } = await supabase
         .from('application_responses')
         .delete()
@@ -313,7 +309,6 @@ export default function ApplicationManagement() {
         
       if (respError) throw respError;
 
-      // Then delete the applications themselves
       const { error: appError } = await supabase
         .from('applications')
         .delete()
@@ -346,14 +341,6 @@ export default function ApplicationManagement() {
     } else {
       toast.success('Notes saved');
     }
-  };
-
-  const handleApproveAndCreateIntern = async (app: Application) => {
-    // Update application status
-    await handleStatusChange(app.id, 'approved');
-    
-    // Navigate to intern creation with pre-filled data including phone and batch name
-    navigate(`/admin/interns?create=true&name=${encodeURIComponent(app.applicant_name)}&email=${encodeURIComponent(app.applicant_email)}&phone=${encodeURIComponent(app.applicant_phone || '')}&department=${app.department_id || app.form?.department_id || ''}&batch_name=${encodeURIComponent(app.form?.batch_name || '')}`);
   };
 
   const handleAIScreen = async (appId: string) => {
@@ -412,13 +399,13 @@ export default function ApplicationManagement() {
 
         await supabase.functions.invoke('send-notification', {
           body: {
-            template_key: 'application_interview_scheduled',
+            template_key: 'job_application_interview_scheduled',
             recipient_email: detailApplication.applicant_email,
             recipient_phone: detailApplication.applicant_phone || undefined,
             data: {
               applicant_name: detailApplication.applicant_name,
-              position: detailApplication.form?.title || 'Internship',
-              form_title: detailApplication.form?.title || 'Internship',
+              position: detailApplication.form?.title || 'Job Position',
+              form_title: detailApplication.form?.title || 'Job Position',
               interview_time: format(new Date(interviewDate), 'PPPP p'),
               interview_type: interviewType === 'google-meet' ? 'Google Meet' : interviewType === 'zoom' ? 'Zoom' : interviewType === 'phone' ? 'Phone Call' : 'In Person',
               interview_link: interviewLink || 'N/A',
@@ -453,7 +440,7 @@ export default function ApplicationManagement() {
   const handleExport = () => {
     const filtered = getFilteredApplications();
     const csv = [
-      ['Name', 'Email', 'Phone', 'Form', 'Status', 'Applied Date'].join(','),
+      ['Name', 'Email', 'Phone', 'Job Form', 'Status', 'Applied Date'].join(','),
       ...filtered.map((app) =>
         [
           app.applicant_name,
@@ -470,7 +457,7 @@ export default function ApplicationManagement() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `applications-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `job-applications-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
   };
 
@@ -533,7 +520,7 @@ export default function ApplicationManagement() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <h1 className="text-2xl font-bold">Applications</h1>
+          <h1 className="text-2xl font-bold">Job Applications</h1>
           <div className="flex items-center gap-3">
             <div className="flex items-center border rounded-md p-0.5 bg-background shadow-sm">
               <Button
@@ -574,10 +561,10 @@ export default function ApplicationManagement() {
           </div>
           <Select value={selectedBatchFilter} onValueChange={setSelectedBatchFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by batch" />
+              <SelectValue placeholder="Filter by label/batch" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Batches</SelectItem>
+              <SelectItem value="all">All Labels</SelectItem>
               {batchNames.map((batch) => (
                 <SelectItem key={batch} value={batch}>
                   {batch}
@@ -600,10 +587,10 @@ export default function ApplicationManagement() {
           </Select>
           <Select value={selectedFormFilter} onValueChange={setSelectedFormFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by form" />
+              <SelectValue placeholder="Filter by job position" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Forms</SelectItem>
+              <SelectItem value="all">All Positions</SelectItem>
               {forms
                 .filter((form) => {
                   const matchesDept = selectedDeptFilter === 'all' || form.department_id === selectedDeptFilter;
@@ -689,7 +676,7 @@ export default function ApplicationManagement() {
                     />
                   </TableHead>
                   <TableHead>Applicant</TableHead>
-                  <TableHead>Form</TableHead>
+                  <TableHead>Position</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Delivery Status</TableHead>
                   <TableHead>Skill Score</TableHead>
@@ -953,7 +940,7 @@ export default function ApplicationManagement() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Form</p>
+                      <p className="text-muted-foreground">Position</p>
                       <p className="font-medium">{detailApplication.form?.title || '—'}</p>
                     </div>
                     <div>
@@ -1236,21 +1223,12 @@ export default function ApplicationManagement() {
                     Save Notes
                   </Button>
                 </div>
-
-                {detailApplication.status === 'approved' && (
-                  <Button
-                    onClick={() => handleApproveAndCreateIntern(detailApplication)}
-                    className="w-full"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Create Intern Account
-                  </Button>
-                )}
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+
       {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>

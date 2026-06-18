@@ -102,6 +102,7 @@ export interface Certificate {
 export interface ApplicationForm {
   id: string;
   title: string;
+  form_type?: 'internship' | 'job';
   batch_name: string | null;
   description: string | null;
   slug: string;
@@ -110,6 +111,7 @@ export interface ApplicationForm {
   allowed_departments?: string[] | null;
   is_paid?: boolean;
   stipend_amount?: string | null;
+  salary_range?: string | null;
   facilities?: string[] | null;
   is_active: boolean;
   deadline: string | null;
@@ -139,6 +141,7 @@ export interface FormField {
 export interface Application {
   id: string;
   form_id: string;
+  form_type?: 'internship' | 'job';
   department_id?: string | null;
   applicant_name: string;
   applicant_email: string;
@@ -149,6 +152,10 @@ export interface Application {
   reviewed_at: string | null;
   delivery_status?: string | null;
   skill_score?: number | null;
+  interview_scheduled_at?: string | null;
+  interview_meeting_link?: string | null;
+  interview_type?: string | null;
+  ai_screening?: string | null;
   created_at: string;
   updated_at: string;
   // Joined data

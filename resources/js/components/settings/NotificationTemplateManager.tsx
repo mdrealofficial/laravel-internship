@@ -147,6 +147,12 @@ export const NotificationTemplateManager: React.FC = () => {
       'certificate_revoked': 'Certificate Revoked',
       'test_email': 'Test Email',
       'test_sms': 'Test SMS',
+      'job_application_submitted': 'Job Application Submitted',
+      'job_application_status_changed': 'Job Application Status Changed',
+      'job_application_approved': 'Job Application Approved',
+      'job_application_rejected': 'Job Application Rejected',
+      'job_application_shortlisted': 'Job Application Shortlisted',
+      'job_application_reviewing': 'Job Application Under Review',
     };
     return labels[key] || key;
   };

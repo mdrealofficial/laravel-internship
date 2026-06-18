@@ -9,10 +9,11 @@ class Application extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['id', 'form_id', 'department_id', 'applicant_name', 'applicant_email', 'applicant_phone', 'status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'delivery_status', 'skill_score'];
+    protected $fillable = ['id', 'form_id', 'form_type', 'department_id', 'applicant_name', 'applicant_email', 'applicant_phone', 'status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'delivery_status', 'skill_score', 'interview_scheduled_at', 'interview_meeting_link', 'interview_type', 'ai_screening'];
 
     protected $casts = [
         'reviewed_at' => 'datetime',
+        'interview_scheduled_at' => 'datetime',
     ];
 
     public function form()

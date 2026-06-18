@@ -15,7 +15,7 @@ class SupabaseCompatController extends Controller
      */
     private function sanitizePayload(array $data): array
     {
-        $dateColumns = ['created_at', 'updated_at', 'reviewed_at', 'sent_at', 'issued_date', 'start_date', 'end_date', 'deadline'];
+        $dateColumns = ['created_at', 'updated_at', 'reviewed_at', 'sent_at', 'issued_date', 'start_date', 'end_date', 'deadline', 'interview_scheduled_at'];
         foreach ($data as $key => $val) {
             if ($val === null) continue;
 

@@ -27,6 +27,12 @@ import StaffSettings from "./pages/staff/StaffSettings";
 import ApplicationList from "./pages/apply/ApplicationList";
 import ApplicationForm from "./pages/apply/ApplicationForm";
 import ApplicationStatusCheck from "./pages/apply/ApplicationStatusCheck";
+import JobFormManagement from "./pages/admin/JobFormManagement";
+import JobFormBuilder from "./pages/admin/JobFormBuilder";
+import JobApplicationManagement from "./pages/admin/JobApplicationManagement";
+import JobBatchMessaging from "./pages/admin/JobBatchMessaging";
+import JobApplicationList from "./pages/apply/JobApplicationList";
+import JobApplicationForm from "./pages/apply/JobApplicationForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +54,8 @@ const App = () => (
             {/* Public Application Routes */}
             <Route path="/apply" element={<ApplicationList />} />
             <Route path="/apply/:slug" element={<ApplicationForm />} />
+            <Route path="/jobs" element={<JobApplicationList />} />
+            <Route path="/apply/job/:slug" element={<JobApplicationForm />} />
             <Route path="/status" element={<ApplicationStatusCheck />} />
             
             {/* Admin Routes */}
@@ -60,7 +68,12 @@ const App = () => (
             <Route path="/admin/forms" element={<ProtectedRoute allowedRoles={['admin']}><FormManagement /></ProtectedRoute>} />
             <Route path="/admin/forms/new" element={<ProtectedRoute allowedRoles={['admin']}><FormBuilder /></ProtectedRoute>} />
             <Route path="/admin/forms/:id" element={<ProtectedRoute allowedRoles={['admin']}><FormBuilder /></ProtectedRoute>} />
+            <Route path="/admin/job-forms" element={<ProtectedRoute allowedRoles={['admin']}><JobFormManagement /></ProtectedRoute>} />
+            <Route path="/admin/job-forms/new" element={<ProtectedRoute allowedRoles={['admin']}><JobFormBuilder /></ProtectedRoute>} />
+            <Route path="/admin/job-forms/:id" element={<ProtectedRoute allowedRoles={['admin']}><JobFormBuilder /></ProtectedRoute>} />
             <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={['admin']}><ApplicationManagement /></ProtectedRoute>} />
+            <Route path="/admin/job-applications" element={<ProtectedRoute allowedRoles={['admin']}><JobApplicationManagement /></ProtectedRoute>} />
+            <Route path="/admin/job-batch-messaging" element={<ProtectedRoute allowedRoles={['admin']}><JobBatchMessaging /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
             <Route path="/admin/roles" element={<ProtectedRoute allowedRoles={['admin']}><RoleTitleManagement /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />

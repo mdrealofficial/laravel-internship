@@ -15,6 +15,9 @@ interface Application {
   status: 'submitted' | 'reviewing' | 'shortlisted' | 'approved' | 'rejected';
   delivery_status: string | null;
   admin_notes: string | null;
+  interview_scheduled_at?: string | null;
+  interview_meeting_link?: string | null;
+  interview_type?: string | null;
   created_at: string;
   form: {
     title: string;
@@ -22,6 +25,7 @@ interface Application {
       name: string;
     } | null;
   } | null;
+  form_type?: string;
 }
 
 const statusColors = {
@@ -153,7 +157,7 @@ export default function ApplicationStatusCheck() {
                 <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
                 <h3 className="font-semibold text-lg mb-2">No Applications Found</h3>
                 <p className="text-muted-foreground">
-                  We couldn't find any internship applications registered under <span className="font-semibold text-foreground">{email}</span>.
+                  We couldn't find any applications registered under <span className="font-semibold text-foreground">{email}</span>.
                 </p>
               </CardContent>
             </Card>
@@ -172,7 +176,7 @@ export default function ApplicationStatusCheck() {
                       {/* Top Metadata Row */}
                       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
                         <div>
-                          <h3 className="text-xl font-bold">{app.form?.title || 'Internship Application'}</h3>
+                          <h3 className="text-xl font-bold">{app.form?.title || (app.form_type === 'job' ? 'Job Application' : 'Internship Application')}</h3>
                           <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 text-sm text-muted-foreground">
                             {app.form?.department && (
                               <div className="flex items-center gap-1.5">
@@ -224,6 +228,35 @@ export default function ApplicationStatusCheck() {
                           );
                         })}
                       </div>
+
+                      {/* Display Interview Schedule if present */}
+                      {app.interview_scheduled_at && (
+                        <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20 flex items-start gap-3 text-sm">
+                          <Calendar className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-semibold text-primary block mb-1 text-base">Interview Scheduled!</span>
+                            <p className="text-foreground font-semibold mt-1">
+                              Date & Time: {format(new Date(app.interview_scheduled_at), 'PPPP p')}
+                            </p>
+                            <p className="text-muted-foreground mt-0.5 capitalize">
+                              Type: <span className="font-medium">{app.interview_type?.replace('-', ' ')}</span>
+                            </p>
+                            {app.interview_meeting_link && (
+                              <p className="text-muted-foreground mt-1">
+                                Meeting Link/Location:{' '}
+                                <a
+                                  href={app.interview_meeting_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline font-semibold break-all"
+                                >
+                                  {app.interview_meeting_link}
+                                </a>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Display Admin Notes/Notes to Applicant if present */}
                       {app.admin_notes && (
