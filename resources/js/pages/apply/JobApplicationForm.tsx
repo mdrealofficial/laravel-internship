@@ -550,7 +550,16 @@ export default function JobApplicationFormPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
+      <div 
+        className="min-h-screen flex items-center justify-center bg-white"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px',
+        }}
+      >
         <Card className="max-w-md">
           <CardContent className="py-12 text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
@@ -732,7 +741,16 @@ export default function JobApplicationFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted py-12">
+    <div 
+      className="min-h-screen bg-white py-12"
+      style={{
+        backgroundImage: `
+          linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px)
+        `,
+        backgroundSize: '40px 40px',
+      }}
+    >
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           <Button variant="ghost" asChild className="mb-6">

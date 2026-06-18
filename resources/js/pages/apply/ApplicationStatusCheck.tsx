@@ -92,7 +92,16 @@ export default function ApplicationStatusCheck() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex flex-col">
+    <div 
+      className="min-h-screen bg-white flex flex-col"
+      style={{
+        backgroundImage: `
+          linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px)
+        `,
+        backgroundSize: '40px 40px',
+      }}
+    >
       {/* Public Header */}
       <header className="border-b bg-card/50 backdrop-blur">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
