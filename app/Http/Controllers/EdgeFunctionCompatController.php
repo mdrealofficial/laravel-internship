@@ -385,50 +385,99 @@ class EdgeFunctionCompatController extends Controller
 
             $apiUrl = $config['api_url'] ?? 'https://api.sms.net.bd/sendsms';
             $method = strtoupper($config['method'] ?? 'POST');
-            $apiKey = $config['api_key'] ?? '';
 
-            if (empty($apiKey)) {
-                return ['success' => false, 'error' => 'SMS API Key not configured', 'response' => null];
+            $params = [];
+            if (!empty($config['parameters']) && is_array($config['parameters'])) {
+                foreach ($config['parameters'] as $param) {
+                    $key = $param['key'] ?? '';
+                    if (empty($key)) continue;
+
+                    $type = $param['type'] ?? 'fixed';
+                    $val = $param['value'] ?? '';
+
+                    if ($type === 'destination_number') {
+                        $params[$key] = $cleanPhone;
+                    } elseif ($type === 'message_content') {
+                        $params[$key] = $message;
+                    } else {
+                        $params[$key] = $val;
+                    }
+                }
+            } else {
+                $apiKey = $config['api_key'] ?? '';
+                if (empty($apiKey)) {
+                    return ['success' => false, 'error' => 'SMS API Key not configured', 'response' => null];
+                }
+                $params = [
+                    'api_key' => $apiKey,
+                    'msg' => $message,
+                    'to' => $cleanPhone,
+                ];
+                if (!empty($config['sender_id'])) {
+                    $params['sender_id'] = $config['sender_id'];
+                }
             }
 
             if ($method === 'GET') {
-                $params = [
-                    'api_key' => $apiKey,
-                    'msg' => $message,
-                    'to' => $cleanPhone,
-                ];
-                if (!empty($config['sender_id'])) {
-                    $params['sender_id'] = $config['sender_id'];
-                }
-
                 $response = Http::get($apiUrl, $params);
             } else {
-                $params = [
-                    'api_key' => $apiKey,
-                    'msg' => $message,
-                    'to' => $cleanPhone,
-                ];
-                if (!empty($config['sender_id'])) {
-                    $params['sender_id'] = $config['sender_id'];
-                }
-
                 $response = Http::asForm()->post($apiUrl, $params);
             }
 
             $result = $response->json() ?? ['raw_response' => $response->body()];
 
-            $isSuccess = isset($result['error']) && ($result['error'] === 0 || $result['error'] === '0')
-                || (isset($result['status']) && strtolower($result['status']) === 'success')
-                || (isset($result['code']) && ($result['code'] === 200 || $result['code'] === '200'))
-                || $response->successful();
+            $isSuccess = $response->successful();
+
+            if ($isSuccess && is_array($result)) {
+                // bulksmsbd.net response_code (202 = success, others are error)
+                if (isset($result['response_code'])) {
+                    $code = intval($result['response_code']);
+                    if ($code !== 202 && $code !== 1000) {
+                        $isSuccess = false;
+                    }
+                }
+                // generic error field checks (where error !== 0 / '0' / false / null)
+                if (isset($result['error'])) {
+                    $err = $result['error'];
+                    if ($err !== 0 && $err !== '0' && $err !== false && $err !== 'false' && $err !== null) {
+                        $isSuccess = false;
+                    }
+                }
+                // generic success field
+                if (isset($result['success']) && ($result['success'] === false || $result['success'] === 'false')) {
+                    $isSuccess = false;
+                }
+                // generic status field
+                if (isset($result['status'])) {
+                    $status = strtolower(strval($result['status']));
+                    if ($status === 'failed' || $status === 'error' || $status === 'false') {
+                        $isSuccess = false;
+                    }
+                }
+                // bulksmsbd.net or other error message field
+                if (!empty($result['error_message'])) {
+                    $isSuccess = false;
+                }
+                if (!empty($result['msg_type']) && strtolower($result['msg_type']) === 'error') {
+                    $isSuccess = false;
+                }
+            }
 
             if ($isSuccess) {
                 return ['success' => true, 'response' => $result];
             }
 
+            $errorMsg = 'SMS Gateway returned failure';
+            if (is_array($result)) {
+                $errorMsg = $result['error_message'] ?? $result['msg'] ?? $result['message'] ?? $result['error'] ?? 'SMS Gateway returned failure';
+                if (is_array($errorMsg) || is_object($errorMsg)) {
+                    $errorMsg = json_encode($errorMsg);
+                }
+            }
+
             return [
                 'success' => false,
-                'error' => $result['msg'] ?? $result['message'] ?? 'SMS Gateway returned failure',
+                'error' => $errorMsg,
                 'response' => $result
             ];
 

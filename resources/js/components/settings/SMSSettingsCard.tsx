@@ -8,13 +8,19 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Loader2, Save, TestTube, Eye, EyeOff, CheckCircle, XCircle, Wallet, Globe } from 'lucide-react';
+import { MessageSquare, Loader2, Save, TestTube, Eye, EyeOff, CheckCircle, XCircle, Wallet, Globe, Plus, Trash2 } from 'lucide-react';
+
+interface SMSParameter {
+  id: string;
+  key: string;
+  type: 'fixed' | 'destination_number' | 'message_content';
+  value: string;
+}
 
 interface SMSConfig {
-  api_key: string;
-  sender_id: string;
   api_url: string;
   method: string;
+  parameters: SMSParameter[];
 }
 
 interface Props {
@@ -27,17 +33,20 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [checkingBalance, setCheckingBalance] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
   const [testPhone, setTestPhone] = useState('');
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [config, setConfig] = useState<SMSConfig>({
-    api_key: '',
-    sender_id: '',
     api_url: 'https://api.sms.net.bd/sendsms',
     method: 'POST',
+    parameters: [
+      { id: '1', key: 'api_key', type: 'fixed', value: '' },
+      { id: '2', key: 'sender_id', type: 'fixed', value: '' },
+      { id: '3', key: 'to', type: 'destination_number', value: '' },
+      { id: '4', key: 'msg', type: 'message_content', value: '' },
+    ],
   });
 
   useEffect(() => {
@@ -55,13 +64,24 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
       if (data) {
         setIsEnabled(data.is_enabled || false);
         setTestMode(data.test_mode || false);
-        const savedConfig = data.config as SMSConfig;
+        const savedConfig = data.config as any;
         if (savedConfig) {
+          let parameters: SMSParameter[] = [];
+          if (savedConfig.parameters && Array.isArray(savedConfig.parameters)) {
+            parameters = savedConfig.parameters;
+          } else {
+            parameters = [
+              { id: '1', key: 'api_key', type: 'fixed', value: savedConfig.api_key || '' },
+              { id: '2', key: 'sender_id', type: 'fixed', value: savedConfig.sender_id || '' },
+              { id: '3', key: 'to', type: 'destination_number', value: '' },
+              { id: '4', key: 'msg', type: 'message_content', value: '' },
+            ];
+          }
+
           setConfig({
-            api_key: savedConfig.api_key || '',
-            sender_id: savedConfig.sender_id || '',
             api_url: savedConfig.api_url || 'https://api.sms.net.bd/sendsms',
             method: savedConfig.method || 'POST',
+            parameters: parameters,
           });
         }
       }
@@ -72,8 +92,8 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
     }
   };
 
-  const saveSettings = async () => {
-    setSaving(true);
+  const saveSettings = async (silent = false) => {
+    if (!silent) setSaving(true);
     try {
       const { error } = await supabase
         .from('notification_settings')
@@ -86,23 +106,34 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
         }, { onConflict: 'setting_type' });
 
       if (error) throw error;
-      toast({ title: 'Success', description: 'SMS settings saved successfully' });
+      if (!silent) {
+        toast({ title: 'Success', description: 'SMS settings saved successfully' });
+      }
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      if (!silent) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      }
+      throw error;
     } finally {
-      setSaving(false);
+      if (!silent) setSaving(false);
     }
   };
 
+  const getApiKey = () => {
+    const apiKeyParam = config.parameters?.find(p => p.key === 'api_key' || p.key.toLowerCase().includes('key'));
+    return apiKeyParam ? apiKeyParam.value : '';
+  };
+
   const checkBalance = async () => {
-    if (!config.api_key) {
-      toast({ title: 'Error', description: 'Please enter API key first', variant: 'destructive' });
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      toast({ title: 'Error', description: 'Please enter API key first in your parameters list', variant: 'destructive' });
       return;
     }
     
     setCheckingBalance(true);
     try {
-      const response = await fetch(`https://api.sms.net.bd/user/balance?api_key=${config.api_key}`);
+      const response = await fetch(`https://api.sms.net.bd/user/balance?api_key=${apiKey}`);
       const result = await response.json();
       
       if (result.error === 0) {
@@ -124,8 +155,8 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
       return;
     }
 
-    if (!config.api_key) {
-      toast({ title: 'Error', description: 'Please enter API key first', variant: 'destructive' });
+    if (config.parameters.length === 0) {
+      toast({ title: 'Error', description: 'Please configure at least one parameter', variant: 'destructive' });
       return;
     }
 
@@ -134,7 +165,7 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
     
     try {
       // First save settings to ensure edge function has latest config
-      await saveSettings();
+      await saveSettings(true);
       
       const { data, error } = await supabase.functions.invoke('send-notification', {
         body: {
@@ -164,6 +195,30 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
     } finally {
       setTesting(false);
     }
+  };
+
+  const addParameter = () => {
+    setConfig(prev => ({
+      ...prev,
+      parameters: [
+        ...prev.parameters,
+        { id: Math.random().toString(36).substring(2, 9), key: '', type: 'fixed', value: '' }
+      ]
+    }));
+  };
+
+  const updateParameter = (id: string, field: keyof SMSParameter, value: string) => {
+    setConfig(prev => ({
+      ...prev,
+      parameters: prev.parameters.map(p => p.id === id ? { ...p, [field]: value } : p)
+    }));
+  };
+
+  const deleteParameter = (id: string) => {
+    setConfig(prev => ({
+      ...prev,
+      parameters: prev.parameters.filter(p => p.id !== id)
+    }));
   };
 
   if (loading) {
@@ -200,8 +255,7 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
       <CardContent className="space-y-6">
         <div className="p-4 rounded-lg bg-muted/50 border">
           <p className="text-sm text-muted-foreground">
-            Configure any SMS gateway that supports REST API. Default is <a href="https://sms.net.bd/api" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">sms.net.bd</a>. 
-            Parameters sent: <code className="bg-muted px-1 rounded">api_key</code>, <code className="bg-muted px-1 rounded">msg</code>, <code className="bg-muted px-1 rounded">to</code>, <code className="bg-muted px-1 rounded">sender_id</code>
+            Configure any SMS gateway that supports REST API. Create key mapping for Fixed values, Destination Number, and Message Content.
           </p>
         </div>
 
@@ -234,38 +288,84 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="sms-api-key">API Key</Label>
-          <div className="relative">
-            <Input
-              id="sms-api-key"
-              type={showApiKey ? 'text' : 'password'}
-              value={config.api_key}
-              onChange={(e) => setConfig({ ...config, api_key: e.target.value })}
-              placeholder="Enter your SMS gateway API key"
-              className="pr-10"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full px-3"
-              onClick={() => setShowApiKey(!showApiKey)}
-            >
-              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        {/* Dynamic Key Mapping Table */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-semibold">HTTP Parameters Mapping</Label>
+            <Button type="button" variant="outline" size="sm" onClick={addParameter}>
+              <Plus className="h-4 w-4 mr-2" /> Add new parameter
             </Button>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="sender-id">Sender ID (Optional)</Label>
-          <Input
-            id="sender-id"
-            value={config.sender_id}
-            onChange={(e) => setConfig({ ...config, sender_id: e.target.value })}
-            placeholder="DIGI5"
-          />
-          <p className="text-xs text-muted-foreground">Leave empty to use default. Must be approved by your SMS provider.</p>
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b">
+                <tr>
+                  <th className="p-3 text-left font-medium text-muted-foreground">Key</th>
+                  <th className="p-3 text-left font-medium text-muted-foreground w-[220px]">Type</th>
+                  <th className="p-3 text-left font-medium text-muted-foreground">Value</th>
+                  <th className="p-3 text-center font-medium text-muted-foreground w-[80px]">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {config.parameters.map((param) => (
+                  <tr key={param.id} className="hover:bg-muted/20">
+                    <td className="p-3">
+                      <Input
+                        value={param.key}
+                        onChange={(e) => updateParameter(param.id, 'key', e.target.value)}
+                        placeholder="e.g. api_key"
+                        className="h-9"
+                      />
+                    </td>
+                    <td className="p-3">
+                      <Select
+                        value={param.type}
+                        onValueChange={(value) => updateParameter(param.id, 'type', value as any)}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fixed">Fixed</SelectItem>
+                          <SelectItem value="destination_number">DESTINATION_NUMBER</SelectItem>
+                          <SelectItem value="message_content">MESSAGE_CONTENT</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-3">
+                      <Input
+                        value={param.value}
+                        onChange={(e) => updateParameter(param.id, 'value', e.target.value)}
+                        placeholder={param.type === 'fixed' ? 'Enter fixed value' : '(Automatically mapped)'}
+                        disabled={param.type !== 'fixed'}
+                        className="h-9"
+                        type={param.type === 'fixed' && (param.key.toLowerCase().includes('key') || param.key.toLowerCase().includes('token') || param.key.toLowerCase().includes('pass')) ? 'password' : 'text'}
+                      />
+                    </td>
+                    <td className="p-3 text-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteParameter(param.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {config.parameters.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-muted-foreground">
+                      No parameters defined. Add a parameter to send data to the gateway.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {balance !== null && (
@@ -299,7 +399,7 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
               placeholder="01XXXXXXXXX or 8801XXXXXXXXX"
               className="flex-1"
             />
-            <Button variant="outline" onClick={sendTestSMS} disabled={testing || !config.api_key}>
+            <Button variant="outline" onClick={sendTestSMS} disabled={testing || config.parameters.length === 0}>
               {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <TestTube className="h-4 w-4 mr-2" />}
               Send Test
             </Button>
@@ -315,11 +415,11 @@ export const SMSSettingsCard: React.FC<Props> = ({ userId }) => {
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button onClick={saveSettings} disabled={saving}>
+          <Button onClick={() => saveSettings(false)} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Save Settings
           </Button>
-          <Button variant="outline" onClick={checkBalance} disabled={checkingBalance || !config.api_key}>
+          <Button variant="outline" onClick={checkBalance} disabled={checkingBalance || !getApiKey()}>
             {checkingBalance ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wallet className="h-4 w-4 mr-2" />}
             Check Balance
           </Button>

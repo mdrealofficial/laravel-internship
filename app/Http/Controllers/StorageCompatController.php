@@ -48,4 +48,27 @@ class StorageCompatController extends Controller
             ], 500);
         }
     }
+
+    public function serve($bucket, $path)
+    {
+        try {
+            $fullPath = "{$bucket}/{$path}";
+            
+            if (!Storage::disk('public')->exists($fullPath)) {
+                abort(404);
+            }
+
+            $filePath = Storage::disk('public')->path($fullPath);
+            $mimeType = Storage::disk('public')->mimeType($fullPath) ?: mime_content_type($filePath);
+
+            return response()->file($filePath, [
+                'Content-Type' => $mimeType,
+                'Access-Control-Allow-Origin' => '*',
+                'Cache-Control' => 'public, max-age=31536000',
+            ]);
+        } catch (\Exception $e) {
+            abort(404);
+        }
+    }
 }
+
