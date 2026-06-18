@@ -35,7 +35,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, MoreHorizontal, Eye, Download, UserPlus, Mail } from 'lucide-react';
+import { Search, MoreHorizontal, Eye, Download, UserPlus, Mail, Trash2 } from 'lucide-react';
 import { Application, ApplicationForm, ApplicationStatus, FormField, Department } from '@/types/database';
 import { format } from 'date-fns';
 
@@ -165,8 +165,12 @@ export default function ApplicationManagement() {
 
   const sendStatusNotification = async (app: Application, newStatus: ApplicationStatus) => {
     try {
-      // Use the seeded template key for status change
-      const templateKey = 'application_status_changed';
+      // Map status to specific template key
+      let templateKey = 'application_status_changed';
+      if (newStatus === 'approved') templateKey = 'application_approved';
+      else if (newStatus === 'rejected') templateKey = 'application_rejected';
+      else if (newStatus === 'shortlisted') templateKey = 'application_shortlisted';
+      else if (newStatus === 'reviewing') templateKey = 'application_reviewing';
 
       const { data, error } = await supabase.functions.invoke('send-notification', {
         body: {
@@ -175,6 +179,7 @@ export default function ApplicationManagement() {
           recipient_phone: app.applicant_phone || undefined,
           data: {
             applicant_name: app.applicant_name,
+            position: app.form?.title || 'Position',
             form_title: app.form?.title || 'Position',
             application_status: newStatus,
             admin_notes: app.admin_notes || '',
@@ -214,6 +219,33 @@ export default function ApplicationManagement() {
     }
   };
 
+  const handleDeleteApplication = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this applicant? This will remove all their data permanently.')) return;
+    
+    try {
+      // First delete application responses (foreign key references)
+      const { error: respError } = await supabase
+        .from('application_responses')
+        .delete()
+        .eq('application_id', id);
+        
+      if (respError) throw respError;
+
+      // Then delete the application itself
+      const { error: appError } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', id);
+
+      if (appError) throw appError;
+
+      toast.success('Applicant deleted successfully');
+      fetchApplications();
+    } catch (error: any) {
+      toast.error('Failed to delete applicant: ' + error.message);
+    }
+  };
+
   const handleBulkStatusChange = async (status: ApplicationStatus) => {
     if (selectedApplications.length === 0) return;
 
@@ -237,6 +269,35 @@ export default function ApplicationManagement() {
       
       setSelectedApplications([]);
       fetchApplications();
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedApplications.length === 0) return;
+    if (!confirm(`Are you sure you want to delete the ${selectedApplications.length} selected applicants? This will remove all their data permanently.`)) return;
+
+    try {
+      // First delete application responses (foreign key references)
+      const { error: respError } = await supabase
+        .from('application_responses')
+        .delete()
+        .in('application_id', selectedApplications);
+        
+      if (respError) throw respError;
+
+      // Then delete the applications themselves
+      const { error: appError } = await supabase
+        .from('applications')
+        .delete()
+        .in('id', selectedApplications);
+
+      if (appError) throw appError;
+
+      toast.success(`${selectedApplications.length} applicants deleted successfully`);
+      setSelectedApplications([]);
+      fetchApplications();
+    } catch (error: any) {
+      toast.error('Failed to delete selected applicants: ' + error.message);
     }
   };
 
@@ -393,6 +454,15 @@ export default function ApplicationManagement() {
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Selected
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelectedApplications([])}>
               Clear
             </Button>
@@ -478,31 +548,42 @@ export default function ApplicationManagement() {
                     </TableCell>
                     <TableCell>{format(new Date(app.created_at), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewDetails(app)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => window.open(`mailto:${app.applicant_email}`)}
-                          >
-                            <Mail className="h-4 w-4 mr-2" />
-                            Send Email
-                          </DropdownMenuItem>
-                          {app.status === 'approved' && (
-                            <DropdownMenuItem onClick={() => handleApproveAndCreateIntern(app)}>
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Create Intern Account
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteApplication(app.id)}
+                          title="Delete Applicant"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(app)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem
+                              onClick={() => window.open(`mailto:${app.applicant_email}`)}
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              Send Email
+                            </DropdownMenuItem>
+                            {app.status === 'approved' && (
+                              <DropdownMenuItem onClick={() => handleApproveAndCreateIntern(app)}>
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Create Intern Account
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

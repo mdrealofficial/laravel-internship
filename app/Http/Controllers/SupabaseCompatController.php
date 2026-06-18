@@ -11,13 +11,20 @@ use Carbon\Carbon;
 class SupabaseCompatController extends Controller
 {
     /**
-     * Convert ISO 8601 datetime strings and Carbon objects to MySQL-compatible format.
+     * Convert ISO 8601 datetime strings, Carbon objects, and booleans to MySQL-compatible formats.
      */
-    private function sanitizeDatetimeFields(array $data): array
+    private function sanitizePayload(array $data): array
     {
         $dateColumns = ['created_at', 'updated_at', 'reviewed_at', 'sent_at', 'issued_date', 'start_date', 'end_date', 'deadline'];
         foreach ($data as $key => $val) {
             if ($val === null) continue;
+
+            // Explicitly cast booleans to integers (1 or 0) for direct DB queries
+            if (is_bool($val)) {
+                $data[$key] = $val ? 1 : 0;
+                continue;
+            }
+
             // Carbon objects => string
             if ($val instanceof \DateTimeInterface) {
                 $data[$key] = Carbon::instance($val)->format('Y-m-d H:i:s');
@@ -197,8 +204,8 @@ class SupabaseCompatController extends Controller
                         $record['created_at'] = now()->format('Y-m-d H:i:s');
                     }
 
-                    // Sanitize datetime fields
-                    $record = $this->sanitizeDatetimeFields($record);
+                    // Sanitize payload for MySQL
+                    $record = $this->sanitizePayload($record);
 
                     // Format JSON fields if needed
                     foreach ($record as $key => $val) {
@@ -220,8 +227,8 @@ class SupabaseCompatController extends Controller
                     return response()->json(['data' => null, 'error' => 'No update data provided'], 400);
                 }
 
-                // Sanitize datetime fields for MySQL
-                $dataToUpdate = $this->sanitizeDatetimeFields($updateData);
+                // Sanitize payload for MySQL
+                $dataToUpdate = $this->sanitizePayload($updateData);
 
                 // Format JSON fields if needed
                 foreach ($dataToUpdate as $key => $val) {
@@ -296,8 +303,8 @@ class SupabaseCompatController extends Controller
                         $record['updated_at'] = now()->format('Y-m-d H:i:s');
                     }
 
-                    // Sanitize datetime fields for MySQL
-                    $record = $this->sanitizeDatetimeFields($record);
+                    // Sanitize payload for MySQL
+                    $record = $this->sanitizePayload($record);
 
                     // Format JSON fields if needed
                     foreach ($record as $key => $val) {

@@ -343,11 +343,16 @@ class EdgeFunctionCompatController extends Controller
 
             // Set SMTP configuration dynamically if host/username are provided in config
             if (!empty($config['host'])) {
+                $encryption = isset($config['encryption']) 
+                    ? ($config['encryption'] === 'none' ? null : $config['encryption'])
+                    : (($config['secure'] ?? true) ? 'tls' : null);
+
                 config([
+                    'mail.default' => 'smtp',
                     'mail.mailers.smtp.transport' => 'smtp',
                     'mail.mailers.smtp.host' => $config['host'],
                     'mail.mailers.smtp.port' => intval($config['port'] ?? 587),
-                    'mail.mailers.smtp.encryption' => ($config['secure'] ?? true) ? 'tls' : null,
+                    'mail.mailers.smtp.encryption' => $encryption,
                     'mail.mailers.smtp.username' => $config['username'] ?? null,
                     'mail.mailers.smtp.password' => $config['password'] ?? null,
                     'mail.from.address' => $config['from_email'] ?? 'no-reply@example.com',

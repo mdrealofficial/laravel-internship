@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Loader2, Save, TestTube, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
@@ -16,7 +17,7 @@ interface SMTPConfig {
   password: string;
   from_email: string;
   from_name: string;
-  secure: boolean;
+  encryption: 'ssl' | 'tls' | 'none';
 }
 
 interface Props {
@@ -31,6 +32,7 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
   const [testMode, setTestMode] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
   const [config, setConfig] = useState<SMTPConfig>({
     host: '',
     port: 587,
@@ -38,7 +40,7 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
     password: '',
     from_email: '',
     from_name: '',
-    secure: true,
+    encryption: 'tls',
   });
 
   useEffect(() => {
@@ -56,8 +58,15 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
       if (data) {
         setIsEnabled(data.is_enabled || false);
         setTestMode(data.test_mode || false);
-        const savedConfig = data.config as SMTPConfig;
+        const savedConfig = data.config as any;
         if (savedConfig) {
+          let encryption: 'ssl' | 'tls' | 'none' = 'tls';
+          if (savedConfig.encryption) {
+            encryption = savedConfig.encryption;
+          } else if (savedConfig.secure === false) {
+            encryption = 'none';
+          }
+
           setConfig({
             host: savedConfig.host || '',
             port: savedConfig.port || 587,
@@ -65,8 +74,12 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
             password: savedConfig.password || '',
             from_email: savedConfig.from_email || '',
             from_name: savedConfig.from_name || '',
-            secure: savedConfig.secure !== false,
+            encryption: encryption,
           });
+
+          if (savedConfig.from_email) {
+            setTestEmail(savedConfig.from_email);
+          }
         }
       }
     } catch (error) {
@@ -76,8 +89,8 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
     }
   };
 
-  const saveSettings = async () => {
-    setSaving(true);
+  const saveSettings = async (silent = false) => {
+    if (!silent) setSaving(true);
     try {
       const { error } = await supabase
         .from('notification_settings')
@@ -90,37 +103,51 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
         }, { onConflict: 'setting_type' });
 
       if (error) throw error;
-      toast({ title: 'Success', description: 'SMTP settings saved successfully' });
+      if (!silent) {
+        toast({ title: 'Success', description: 'SMTP settings saved successfully' });
+      }
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      if (!silent) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      }
+      throw error;
     } finally {
-      setSaving(false);
+      if (!silent) setSaving(false);
     }
   };
 
   const testConnection = async () => {
+    if (!testEmail) {
+      toast({ title: 'Error', description: 'Please enter a test recipient email', variant: 'destructive' });
+      return;
+    }
     setTesting(true);
     try {
       // First save settings
-      await saveSettings();
+      await saveSettings(true);
       
       // Then send test email
       const { data, error } = await supabase.functions.invoke('send-notification', {
         body: {
           template_key: 'test_email',
-          recipient_email: config.from_email,
+          recipient_email: testEmail,
           data: {
-            test_message: 'This is a test email from your SMTP configuration.',
+            test_message: 'This is a test email to verify your SMTP configuration.',
           },
         },
       });
 
       if (error) throw error;
       
-      toast({ 
-        title: 'Test Sent', 
-        description: `Test email queued. Check ${config.from_email} inbox.` 
-      });
+      if (data?.results?.email?.success) {
+        toast({ 
+          title: 'Test Sent', 
+          description: `Test email sent successfully. Check ${testEmail} inbox.` 
+        });
+      } else {
+        const errorMsg = data?.results?.email?.error || 'Failed to send test email';
+        toast({ title: 'Test Failed', description: errorMsg, variant: 'destructive' });
+      }
     } catch (error: any) {
       toast({ title: 'Test Failed', description: error.message, variant: 'destructive' });
     } finally {
@@ -237,16 +264,32 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-          <div>
-            <Label htmlFor="ssl-tls">Use SSL/TLS</Label>
-            <p className="text-sm text-muted-foreground">Enable secure connection</p>
-          </div>
-          <Switch
-            id="ssl-tls"
-            checked={config.secure}
-            onCheckedChange={(checked) => setConfig({ ...config, secure: checked })}
-          />
+        <div className="space-y-3 p-4 rounded-lg border bg-muted/30">
+          <Label className="text-sm font-medium">Encryption Mode</Label>
+          <RadioGroup 
+            value={config.encryption} 
+            onValueChange={(val) => {
+              let port = config.port;
+              if (val === 'ssl' && (port === 587 || port === 25)) port = 465;
+              if (val === 'tls' && (port === 465 || port === 25)) port = 587;
+              if (val === 'none' && (port === 465 || port === 587)) port = 25;
+              setConfig({ ...config, encryption: val as any, port });
+            }}
+            className="flex gap-6 mt-1"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="none" id="enc-none" />
+              <Label htmlFor="enc-none" className="cursor-pointer font-normal">None</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="ssl" id="enc-ssl" />
+              <Label htmlFor="enc-ssl" className="cursor-pointer font-normal">SSL (Port 465)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="tls" id="enc-tls" />
+              <Label htmlFor="enc-tls" className="cursor-pointer font-normal">TLS (Port 587)</Label>
+            </div>
+          </RadioGroup>
         </div>
 
         <div className="flex items-center justify-between p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
@@ -261,14 +304,27 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
           />
         </div>
 
+        <div className="space-y-3 p-4 rounded-lg border bg-card">
+          <Label className="text-sm font-medium">Send Test Email</Label>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="recipient@example.com"
+              className="flex-1"
+            />
+            <Button variant="outline" onClick={testConnection} disabled={testing || !config.host || !testEmail}>
+              {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <TestTube className="h-4 w-4 mr-2" />}
+              Send Test
+            </Button>
+          </div>
+        </div>
+
         <div className="flex gap-3 pt-4">
-          <Button onClick={saveSettings} disabled={saving}>
+          <Button onClick={() => saveSettings(false)} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Save Settings
-          </Button>
-          <Button variant="outline" onClick={testConnection} disabled={testing || !config.host}>
-            {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <TestTube className="h-4 w-4 mr-2" />}
-            Test Connection
           </Button>
         </div>
       </CardContent>
