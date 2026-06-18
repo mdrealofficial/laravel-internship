@@ -9,7 +9,7 @@ class Application extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['id', 'form_id', 'applicant_name', 'applicant_email', 'applicant_phone', 'status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'delivery_status'];
+    protected $fillable = ['id', 'form_id', 'department_id', 'applicant_name', 'applicant_email', 'applicant_phone', 'status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'delivery_status', 'skill_score'];
 
     protected $casts = [
         'reviewed_at' => 'datetime',
@@ -18,6 +18,11 @@ class Application extends Model
     public function form()
     {
         return $this->belongsTo(ApplicationForm::class, 'form_id', 'id');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id', 'id');
     }
 
     public function responses()

@@ -26,16 +26,21 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, MoreHorizontal, Eye, Download, UserPlus, Mail, Trash2 } from 'lucide-react';
+import { Search, MoreHorizontal, Eye, Download, UserPlus, Trash2 } from 'lucide-react';
 import { Application, ApplicationForm, ApplicationStatus, FormField, Department } from '@/types/database';
 import { format } from 'date-fns';
 
@@ -60,10 +65,22 @@ export default function ApplicationManagement() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedFormFilter, setSelectedFormFilter] = useState<string>(formFilter || 'all');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
   const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>('date-desc');
   const [detailApplication, setDetailApplication] = useState<Application | null>(null);
   const [responses, setResponses] = useState<{ field: FormField; value: string | null; file_url: string | null }[]>([]);
   const [adminNotes, setAdminNotes] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<'single' | 'bulk' | null>(null);
+  const [singleDeleteId, setSingleDeleteId] = useState<string | null>(null);
+
+  const batchNames = Array.from(
+    new Set(
+      forms
+        .map((f) => f.batch_name)
+        .filter((b): b is string => !!b)
+    )
+  ).sort();
 
   useEffect(() => {
     fetchForms();
@@ -101,7 +118,7 @@ export default function ApplicationManagement() {
     setLoading(true);
     const { data, error } = await supabase
       .from('applications')
-      .select('*, form:application_forms(*)')
+      .select('*, form:application_forms(*), department:departments(*)')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -220,8 +237,6 @@ export default function ApplicationManagement() {
   };
 
   const handleDeleteApplication = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this applicant? This will remove all their data permanently.')) return;
-    
     try {
       // First delete application responses (foreign key references)
       const { error: respError } = await supabase
@@ -244,6 +259,11 @@ export default function ApplicationManagement() {
     } catch (error: any) {
       toast.error('Failed to delete applicant: ' + error.message);
     }
+  };
+
+  const confirmDeleteSingle = (id: string) => {
+    setSingleDeleteId(id);
+    setDeleteTarget('single');
   };
 
   const handleBulkStatusChange = async (status: ApplicationStatus) => {
@@ -274,7 +294,6 @@ export default function ApplicationManagement() {
 
   const handleBulkDelete = async () => {
     if (selectedApplications.length === 0) return;
-    if (!confirm(`Are you sure you want to delete the ${selectedApplications.length} selected applicants? This will remove all their data permanently.`)) return;
 
     try {
       // First delete application responses (foreign key references)
@@ -301,6 +320,10 @@ export default function ApplicationManagement() {
     }
   };
 
+  const confirmDeleteBulk = () => {
+    setDeleteTarget('bulk');
+  };
+
   const handleSaveNotes = async () => {
     if (!detailApplication) return;
 
@@ -321,7 +344,7 @@ export default function ApplicationManagement() {
     await handleStatusChange(app.id, 'approved');
     
     // Navigate to intern creation with pre-filled data including phone
-    navigate(`/admin/interns?create=true&name=${encodeURIComponent(app.applicant_name)}&email=${encodeURIComponent(app.applicant_email)}&phone=${encodeURIComponent(app.applicant_phone || '')}&department=${app.form?.department_id || ''}`);
+    navigate(`/admin/interns?create=true&name=${encodeURIComponent(app.applicant_name)}&email=${encodeURIComponent(app.applicant_email)}&phone=${encodeURIComponent(app.applicant_phone || '')}&department=${app.department_id || app.form?.department_id || ''}`);
   };
 
   const handleExport = () => {
@@ -349,14 +372,41 @@ export default function ApplicationManagement() {
   };
 
   const getFilteredApplications = () => {
-    return applications.filter((app) => {
+    const filtered = applications.filter((app) => {
       const matchesSearch =
         app.applicant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.applicant_email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
       const matchesForm = selectedFormFilter === 'all' || app.form_id === selectedFormFilter;
-      const matchesDept = selectedDeptFilter === 'all' || app.form?.department_id === selectedDeptFilter;
-      return matchesSearch && matchesStatus && matchesForm && matchesDept;
+      const matchesDept = selectedDeptFilter === 'all' || (app.department_id || app.form?.department_id) === selectedDeptFilter;
+      const matchesBatch = selectedBatchFilter === 'all' || app.form?.batch_name === selectedBatchFilter;
+      return matchesSearch && matchesStatus && matchesForm && matchesDept && matchesBatch;
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'date-desc') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (sortBy === 'date-asc') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (sortBy === 'score-desc') {
+        const scoreA = a.skill_score !== null && a.skill_score !== undefined ? a.skill_score : -1;
+        const scoreB = b.skill_score !== null && b.skill_score !== undefined ? b.skill_score : -1;
+        return scoreB - scoreA;
+      }
+      if (sortBy === 'score-asc') {
+        const scoreA = a.skill_score !== null && a.skill_score !== undefined ? a.skill_score : 999;
+        const scoreB = b.skill_score !== null && b.skill_score !== undefined ? b.skill_score : 999;
+        return scoreA - scoreB;
+      }
+      if (sortBy === 'name-asc') {
+        return a.applicant_name.localeCompare(b.applicant_name);
+      }
+      if (sortBy === 'name-desc') {
+        return b.applicant_name.localeCompare(a.applicant_name);
+      }
+      return 0;
     });
   };
 
@@ -397,6 +447,19 @@ export default function ApplicationManagement() {
               className="pl-10"
             />
           </div>
+          <Select value={selectedBatchFilter} onValueChange={setSelectedBatchFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by batch" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Batches</SelectItem>
+              {batchNames.map((batch) => (
+                <SelectItem key={batch} value={batch}>
+                  {batch}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={selectedDeptFilter} onValueChange={handleDeptFilterChange}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by department" />
@@ -417,7 +480,11 @@ export default function ApplicationManagement() {
             <SelectContent>
               <SelectItem value="all">All Forms</SelectItem>
               {forms
-                .filter((form) => selectedDeptFilter === 'all' || form.department_id === selectedDeptFilter)
+                .filter((form) => {
+                  const matchesDept = selectedDeptFilter === 'all' || form.department_id === selectedDeptFilter;
+                  const matchesBatch = selectedBatchFilter === 'all' || form.batch_name === selectedBatchFilter;
+                  return matchesDept && matchesBatch;
+                })
                 .map((form) => (
                   <SelectItem key={form.id} value={form.id}>
                     {form.title}
@@ -436,6 +503,19 @@ export default function ApplicationManagement() {
               <SelectItem value="shortlisted">Shortlisted</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-desc">Applied (Newest)</SelectItem>
+              <SelectItem value="date-asc">Applied (Oldest)</SelectItem>
+              <SelectItem value="score-desc">Skill Score (High to Low)</SelectItem>
+              <SelectItem value="score-asc">Skill Score (Low to High)</SelectItem>
+              <SelectItem value="name-asc">Name (A to Z)</SelectItem>
+              <SelectItem value="name-desc">Name (Z to A)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -457,7 +537,7 @@ export default function ApplicationManagement() {
             <Button
               variant="destructive"
               size="sm"
-              onClick={handleBulkDelete}
+              onClick={confirmDeleteBulk}
               className="flex items-center gap-2"
             >
               <Trash2 className="h-4 w-4" />
@@ -486,6 +566,7 @@ export default function ApplicationManagement() {
                 <TableHead>Form</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Delivery Status</TableHead>
+                <TableHead>Skill Score</TableHead>
                 <TableHead>Applied</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -493,13 +574,13 @@ export default function ApplicationManagement() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : filteredApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No applications found.
                   </TableCell>
                 </TableRow>
@@ -521,9 +602,9 @@ export default function ApplicationManagement() {
                     <TableCell>
                       <div>
                         <p className="font-medium">{app.form?.title || '—'}</p>
-                        {app.form?.department_id && (
+                        {(app.department_id || app.form?.department_id) && (
                           <span className="inline-block mt-1 text-[10px] font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                            {getDepartmentName(app.form.department_id)}
+                            {getDepartmentName(app.department_id || app.form?.department_id)}
                           </span>
                         )}
                       </div>
@@ -546,6 +627,27 @@ export default function ApplicationManagement() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {app.skill_score !== null && app.skill_score !== undefined ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{app.skill_score}/100</span>
+                          <div className="w-16 bg-muted rounded-full h-1.5 hidden sm:block">
+                            <div 
+                              className={`h-1.5 rounded-full ${
+                                app.skill_score >= 80 
+                                  ? 'bg-emerald-500' 
+                                  : app.skill_score >= 50 
+                                  ? 'bg-amber-500' 
+                                  : 'bg-rose-500'
+                              }`} 
+                              style={{ width: `${app.skill_score}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>{format(new Date(app.created_at), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -553,36 +655,19 @@ export default function ApplicationManagement() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteApplication(app.id)}
+                          onClick={() => confirmDeleteSingle(app.id)}
                           title="Delete Applicant"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(app)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => window.open(`mailto:${app.applicant_email}`)}
-                            >
-                              <Mail className="h-4 w-4 mr-2" />
-                              Send Email
-                            </DropdownMenuItem>
-                            {app.status === 'approved' && (
-                              <DropdownMenuItem onClick={() => handleApproveAndCreateIntern(app)}>
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Create Intern Account
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewDetails(app)}
+                          title="View Details"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -635,7 +720,7 @@ export default function ApplicationManagement() {
                     <div>
                       <p className="text-muted-foreground">Department</p>
                       <p className="font-medium">
-                        {getDepartmentName(detailApplication.form?.department_id)}
+                        {getDepartmentName(detailApplication.department_id || detailApplication.form?.department_id)}
                       </p>
                     </div>
                   </div>
@@ -663,23 +748,81 @@ export default function ApplicationManagement() {
                 <div className="space-y-4">
                   <h3 className="font-semibold">Form Responses</h3>
                   <div className="space-y-4">
-                    {responses.map((r) => (
-                      <div key={r.field.id} className="space-y-1">
-                        <p className="text-sm text-muted-foreground">{r.field.label}</p>
-                        {r.file_url ? (
-                          <a
-                            href={r.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary underline text-sm"
-                          >
-                            View uploaded file
-                          </a>
-                        ) : (
-                          <p className="text-sm font-medium">{r.value || '—'}</p>
-                        )}
-                      </div>
-                    ))}
+                    {responses.map((r) => {
+                      const fileUrl = r.file_url || (r.value && (r.value.startsWith('http://') || r.value.startsWith('https://')) && (r.value.includes('/storage/') || r.value.includes('/uploads/')) ? r.value : null);
+                      const isImage = fileUrl && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileUrl);
+                      
+                      return (
+                        <div key={r.field.id} className="space-y-1">
+                          <p className="text-sm text-muted-foreground">{r.field.label}</p>
+                          {fileUrl ? (
+                            <div className="flex flex-col gap-2 mt-1">
+                              {isImage && (
+                                <div className="relative max-w-xs border rounded-md overflow-hidden bg-muted">
+                                  <img src={fileUrl} alt={r.field.label} className="max-h-32 object-contain" />
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" asChild>
+                                  <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                    View File
+                                  </a>
+                                </Button>
+                                <Button variant="secondary" size="sm" asChild>
+                                  <a
+                                    href={fileUrl}
+                                    download
+                                    className="flex items-center gap-1.5"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Download
+                                  </a>
+                                </Button>
+                              </div>
+                            </div>
+                          ) : r.field.field_type === 'range' ? (
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">{r.value || '—'}</p>
+                              {r.value && r.field.options && r.field.options.length >= 2 && (
+                                <div className="w-full bg-muted rounded-full h-1.5 max-w-xs mt-1">
+                                  <div 
+                                    className="bg-primary h-1.5 rounded-full" 
+                                    style={{ 
+                                      width: `${Math.min(100, Math.max(0, 
+                                        ((Number(r.value) - Number(r.field.options[0])) / 
+                                        (Number(r.field.options[1]) - Number(r.field.options[0]))) * 100
+                                      ))}%` 
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ) : r.field.field_type === 'skills' ? (
+                            <div className="space-y-1.5 mt-1">
+                              {r.value ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {r.value.split(', ').map((skill, index) => (
+                                    <Badge key={index} variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 text-xs py-0.5 px-2 border-primary/20">
+                                      {skill}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground italic">No skills selected</p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm font-medium">{r.value || '—'}</p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -710,6 +853,36 @@ export default function ApplicationManagement() {
           )}
         </SheetContent>
       </Sheet>
+      {/* Delete Confirmation Alert Dialog */}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget === 'single'
+                ? "This action cannot be undone. This will permanently delete this applicant and all of their form responses."
+                : `This action cannot be undone. This will permanently delete the ${selectedApplications.length} selected applicants and all of their form responses.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (deleteTarget === 'single' && singleDeleteId) {
+                  await handleDeleteApplication(singleDeleteId);
+                } else if (deleteTarget === 'bulk') {
+                  await handleBulkDelete();
+                }
+                setDeleteTarget(null);
+                setSingleDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

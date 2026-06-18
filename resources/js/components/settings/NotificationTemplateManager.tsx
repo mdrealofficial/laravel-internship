@@ -33,6 +33,7 @@ const PLACEHOLDERS = [
   { key: '{{department_name}}', description: 'Department name' },
   { key: '{{company_name}}', description: 'Company name' },
   { key: '{{verification_url}}', description: 'Certificate verification URL' },
+  { key: '{{status_url}}', description: 'Application status check URL' },
   { key: '{{start_date}}', description: 'Internship start date' },
   { key: '{{end_date}}', description: 'Internship end date' },
 ];

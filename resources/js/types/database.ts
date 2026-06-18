@@ -2,7 +2,9 @@ export type AppRole = 'admin' | 'intern' | 'staff';
 export type InternshipStatus = 'pending' | 'active' | 'completed' | 'terminated';
 export type CertificateStatus = 'pending' | 'issued' | 'revoked';
 export type ApplicationStatus = 'submitted' | 'reviewing' | 'shortlisted' | 'approved' | 'rejected';
-export type FormFieldType = 'text' | 'textarea' | 'email' | 'phone' | 'number' | 'date' | 'select' | 'radio' | 'checkbox' | 'file';
+export type FormFieldType = 'text' | 'textarea' | 'email' | 'phone' | 'number' | 'date' | 'select' | 'radio' | 'checkbox' | 'file' | 'range' | 'skills';
+
+
 
 export interface UserRole {
   id: string;
@@ -99,9 +101,15 @@ export interface Certificate {
 export interface ApplicationForm {
   id: string;
   title: string;
+  batch_name: string | null;
   description: string | null;
   slug: string;
   department_id: string | null;
+  is_multi_department?: boolean;
+  allowed_departments?: string[] | null;
+  is_paid?: boolean;
+  stipend_amount?: string | null;
+  facilities?: string[] | null;
   is_active: boolean;
   deadline: string | null;
   created_by: string | null;
@@ -129,6 +137,7 @@ export interface FormField {
 export interface Application {
   id: string;
   form_id: string;
+  department_id?: string | null;
   applicant_name: string;
   applicant_email: string;
   applicant_phone: string | null;
@@ -137,10 +146,12 @@ export interface Application {
   reviewed_by: string | null;
   reviewed_at: string | null;
   delivery_status?: string | null;
+  skill_score?: number | null;
   created_at: string;
   updated_at: string;
   // Joined data
   form?: ApplicationForm;
+  department?: Department;
   responses?: ApplicationResponse[];
 }
 

@@ -106,6 +106,8 @@ class SupabaseCompatController extends Controller
                 'application_forms' => 'form',
                 'form' => 'form',
                 'application_responses' => 'responses',
+                'department' => 'department',
+                'departments' => 'department',
             ],
         ];
 
@@ -130,6 +132,82 @@ class SupabaseCompatController extends Controller
         }
 
         return Str::camel($relationName);
+    }
+
+    private function resolveRelationsAndAliases($table, $selectFields, &$relationsToLoad, &$aliasMapping, $parentRelationPath = '', $parentModelClass = null)
+    {
+        $len = strlen($selectFields);
+        $i = 0;
+        
+        while ($i < $len) {
+            if ($selectFields[$i] === ' ' || $selectFields[$i] === ',') {
+                $i++;
+                continue;
+            }
+            
+            $start = $i;
+            $parenCount = 0;
+            $relationStr = '';
+            
+            while ($i < $len) {
+                if ($selectFields[$i] === '(') {
+                    $parenCount++;
+                    if ($parenCount === 1) {
+                        $relationStr = substr($selectFields, $start, $i - $start);
+                        $start = $i + 1;
+                    }
+                } elseif ($selectFields[$i] === ')') {
+                    $parenCount--;
+                    if ($parenCount === 0) {
+                        $innerContent = substr($selectFields, $start, $i - $start);
+                        
+                        $relationStr = trim($relationStr);
+                        $parts = explode(':', $relationStr);
+                        $relationName = count($parts) > 1 ? $parts[1] : $parts[0];
+                        $alias = $parts[0];
+                        
+                        $relationName = trim($relationName);
+                        $alias = trim($alias);
+                        
+                        // Get the current model's relation method name
+                        $currentTable = $parentModelClass ? (new $parentModelClass)->getTable() : $table;
+                        $relationMethod = $this->getRelationMethod($currentTable, $relationName);
+                        
+                        // Build Eloquent with() path (e.g. "form.department")
+                        $withPath = $parentRelationPath ? $parentRelationPath . '.' . $relationMethod : $relationMethod;
+                        $relationsToLoad[] = $withPath;
+                        
+                        $aliasMapping[$withPath] = [
+                            'alias' => $alias,
+                            'relationMethod' => $relationMethod,
+                            'parentPath' => $parentRelationPath
+                        ];
+                        
+                        // Recurse into inner content
+                        $modelClass = $parentModelClass ?: $this->getModelClass($table);
+                        if ($modelClass && method_exists($modelClass, $relationMethod)) {
+                            try {
+                                $relatedModelClass = get_class((new $modelClass)->$relationMethod()->getRelated());
+                                $this->resolveRelationsAndAliases(
+                                    $table,
+                                    $innerContent,
+                                    $relationsToLoad,
+                                    $aliasMapping,
+                                    $withPath,
+                                    $relatedModelClass
+                                );
+                            } catch (\Exception $e) {
+                                // Ignore recursion errors on dynamic relations
+                            }
+                        }
+                        
+                        break;
+                    }
+                }
+                $i++;
+            }
+            $i++;
+        }
     }
 
     public function query(Request $request)
@@ -208,9 +286,12 @@ class SupabaseCompatController extends Controller
                     $record = $this->sanitizePayload($record);
 
                     // Format JSON fields if needed
+                    $modelInstance = new $modelClass;
                     foreach ($record as $key => $val) {
                         if (is_array($val) || is_object($val)) {
-                            $record[$key] = json_encode($val);
+                            if (!$modelInstance->hasCast($key, ['json', 'array', 'object', 'collection', 'encrypted:json', 'encrypted:array', 'encrypted:object', 'encrypted:collection'])) {
+                                $record[$key] = json_encode($val);
+                            }
                         }
                     }
 
@@ -231,9 +312,12 @@ class SupabaseCompatController extends Controller
                 $dataToUpdate = $this->sanitizePayload($updateData);
 
                 // Format JSON fields if needed
+                $modelInstance = new $modelClass;
                 foreach ($dataToUpdate as $key => $val) {
                     if (is_array($val) || is_object($val)) {
-                        $dataToUpdate[$key] = json_encode($val);
+                        if (!$modelInstance->hasCast($key, ['json', 'array', 'object', 'collection', 'encrypted:json', 'encrypted:array', 'encrypted:object', 'encrypted:collection'])) {
+                            $dataToUpdate[$key] = json_encode($val);
+                        }
                     }
                 }
 
@@ -344,24 +428,7 @@ class SupabaseCompatController extends Controller
             $aliasMapping = [];
 
             if ($selectFields !== '*') {
-                // Split by comma but respect brackets
-                $parts = preg_split('/,(?![^(]*\))/', $selectFields);
-                foreach ($parts as $part) {
-                    $part = trim($part);
-                    // Match "alias:relation(*)" or "relation(*)"
-                    if (preg_match('/^([a-zA-Z0-9_]+):([a-zA-Z0-9_]+)\((.*)\)$/', $part, $matches)) {
-                        $alias = $matches[1];
-                        $relationName = $matches[2];
-                        $relationMethod = $this->getRelationMethod($table, $relationName);
-                        $relationsToLoad[] = $relationMethod;
-                        $aliasMapping[$relationMethod] = $alias;
-                    } elseif (preg_match('/^([a-zA-Z0-9_]+)\((.*)\)$/', $part, $matches)) {
-                        $relationName = $matches[1];
-                        $relationMethod = $this->getRelationMethod($table, $relationName);
-                        $relationsToLoad[] = $relationMethod;
-                        $aliasMapping[$relationMethod] = $relationName;
-                    }
-                }
+                $this->resolveRelationsAndAliases($table, $selectFields, $relationsToLoad, $aliasMapping);
             }
 
             if (!empty($relationsToLoad)) {
@@ -398,13 +465,41 @@ class SupabaseCompatController extends Controller
             }
 
             // Alias relations to match client expectations
-            if ($data) {
+            if ($data && !empty($aliasMapping)) {
                 $records = ($isSingle || $isMaybeSingle) ? [$data] : $data;
                 foreach ($records as $record) {
-                    foreach ($aliasMapping as $relationMethod => $alias) {
-                        if ($record->relationLoaded($relationMethod)) {
-                            // Copy relation object to the alias key
-                            $record->setAttribute($alias, $record->getRelation($relationMethod));
+                    foreach ($aliasMapping as $withPath => $mapping) {
+                        $alias = $mapping['alias'];
+                        $relationMethod = $mapping['relationMethod'];
+                        $parentPath = $mapping['parentPath'];
+                        
+                        // Retrieve the parent object(s)
+                        $parents = [$record];
+                        if (!empty($parentPath)) {
+                            $pathParts = explode('.', $parentPath);
+                            foreach ($pathParts as $part) {
+                                $nextParents = [];
+                                foreach ($parents as $p) {
+                                    if ($p && $p->relationLoaded($part)) {
+                                        $rel = $p->getRelation($part);
+                                        if ($rel instanceof \Illuminate\Database\Eloquent\Collection) {
+                                            foreach ($rel as $item) {
+                                                $nextParents[] = $item;
+                                            }
+                                        } elseif ($rel) {
+                                            $nextParents[] = $rel;
+                                        }
+                                    }
+                                }
+                                $parents = $nextParents;
+                            }
+                        }
+                        
+                        // Set the alias on the parent objects
+                        foreach ($parents as $parentObj) {
+                            if ($parentObj && $parentObj->relationLoaded($relationMethod)) {
+                                $parentObj->setAttribute($alias, $parentObj->getRelation($relationMethod));
+                            }
                         }
                     }
                 }

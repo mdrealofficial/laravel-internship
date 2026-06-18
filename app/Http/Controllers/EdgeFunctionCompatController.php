@@ -191,6 +191,7 @@ class EdgeFunctionCompatController extends Controller
         $recipientEmail = $request->input('recipient_email');
         $recipientPhone = $request->input('recipient_phone');
         $data = $request->input('data', []);
+        $data['status_url'] = url('/status');
         $forceSend = $request->input('force_send', false);
 
         if (!$templateKey) {

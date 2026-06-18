@@ -9,7 +9,9 @@ import {
   List, 
   Circle, 
   CheckSquare, 
-  Upload 
+  Upload,
+  Sliders,
+  Award
 } from 'lucide-react';
 import { FormFieldType } from '@/types/database';
 
@@ -30,6 +32,8 @@ const fieldTypes: FieldTypeConfig[] = [
   { type: 'radio', label: 'Radio Group', icon: <Circle className="h-4 w-4" /> },
   { type: 'checkbox', label: 'Checkbox', icon: <CheckSquare className="h-4 w-4" /> },
   { type: 'file', label: 'File Upload', icon: <Upload className="h-4 w-4" /> },
+  { type: 'range', label: 'Range Slider', icon: <Sliders className="h-4 w-4" /> },
+  { type: 'skills', label: 'Department Skills', icon: <Award className="h-4 w-4" /> },
 ];
 
 interface DraggableFieldProps {

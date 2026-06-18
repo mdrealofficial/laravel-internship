@@ -27,10 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Save, ArrowLeft, Eye } from 'lucide-react';
+import { Save, ArrowLeft, Eye, Plus, Trash2 } from 'lucide-react';
 import { Department, FormFieldType } from '@/types/database';
 
 // System fields (Name, Email, Phone) are hardcoded in ApplicationForm
@@ -46,7 +47,14 @@ export default function FormBuilder() {
   const [formSlug, setFormSlug] = useState('');
   const [departmentId, setDepartmentId] = useState<string>('');
   const [isActive, setIsActive] = useState(true);
+  const [isMultiDepartment, setIsMultiDepartment] = useState(false);
+  const [allowedDepartments, setAllowedDepartments] = useState<string[]>([]);
+  const [batchName, setBatchName] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [isPaid, setIsPaid] = useState(false);
+  const [stipendAmount, setStipendAmount] = useState('');
+  const [facilities, setFacilities] = useState<string[]>([]);
+  const [newFacility, setNewFacility] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [fields, setFields] = useState<CanvasField[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -80,11 +88,17 @@ export default function FormBuilder() {
 
     if (form) {
       setFormTitle(form.title);
+      setBatchName(form.batch_name || '');
       setFormDescription(form.description || '');
       setFormSlug(form.slug);
       setDepartmentId(form.department_id || '');
+      setIsMultiDepartment(form.is_multi_department ?? false);
+      setAllowedDepartments(form.allowed_departments || []);
       setIsActive(form.is_active ?? true);
       setDeadline(form.deadline ? form.deadline.split('T')[0] : '');
+      setIsPaid(form.is_paid ?? false);
+      setStipendAmount(form.stipend_amount ? String(form.stipend_amount) : '');
+      setFacilities(form.facilities || []);
       
       // Filter out any old system fields that may have been saved
       const customFields = (form.form_fields || [])
@@ -133,10 +147,10 @@ export default function FormBuilder() {
       const newField: CanvasField = {
         id: `field-${Date.now()}`,
         type: fieldType,
-        label: `New ${fieldType} field`,
+        label: fieldType === 'skills' ? 'Skills' : `New ${fieldType} field`,
         placeholder: '',
         isRequired: false,
-        options: [],
+        options: fieldType === 'range' ? ['0', '100', '1'] : [],
       };
       setFields([...fields, newField]);
       setEditingField(newField);
@@ -177,11 +191,17 @@ export default function FormBuilder() {
           .from('application_forms')
           .update({
             title: formTitle,
+            batch_name: batchName || null,
             description: formDescription || null,
             slug: formSlug,
             department_id: departmentId || null,
+            is_multi_department: isMultiDepartment,
+            allowed_departments: allowedDepartments.length > 0 ? allowedDepartments : null,
             is_active: isActive,
             deadline: deadline || null,
+            is_paid: isPaid,
+            stipend_amount: isPaid && stipendAmount ? parseFloat(stipendAmount) : null,
+            facilities: facilities.length > 0 ? facilities : null,
           })
           .eq('id', id);
 
@@ -194,11 +214,17 @@ export default function FormBuilder() {
           .from('application_forms')
           .insert({
             title: formTitle,
+            batch_name: batchName || null,
             description: formDescription || null,
             slug: formSlug,
             department_id: departmentId || null,
+            is_multi_department: isMultiDepartment,
+            allowed_departments: allowedDepartments.length > 0 ? allowedDepartments : null,
             is_active: isActive,
             deadline: deadline || null,
+            is_paid: isPaid,
+            stipend_amount: isPaid && stipendAmount ? parseFloat(stipendAmount) : null,
+            facilities: facilities.length > 0 ? facilities : null,
           })
           .select()
           .single();
@@ -283,6 +309,15 @@ export default function FormBuilder() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="batch">Batch Name</Label>
+                    <Input
+                      id="batch"
+                      value={batchName}
+                      onChange={(e) => setBatchName(e.target.value)}
+                      placeholder="e.g. Batch 1, Summer 2026"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="slug">URL Slug</Label>
                     <Input
                       id="slug"
@@ -301,22 +336,68 @@ export default function FormBuilder() {
                       rows={3}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department</Label>
-                    <Select value={departmentId || 'none'} onValueChange={(v) => setDepartmentId(v === 'none' ? '' : v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No department</SelectItem>
-                        {departments.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  
+                  <div className="flex items-center justify-between pb-2 border-b">
+                    <Label htmlFor="multi-dept">Allow Multi-Department</Label>
+                    <Switch
+                      id="multi-dept"
+                      checked={isMultiDepartment}
+                      onCheckedChange={(checked) => {
+                        setIsMultiDepartment(checked);
+                        if (checked) {
+                          setDepartmentId('');
+                        } else {
+                          setAllowedDepartments([]);
+                        }
+                      }}
+                    />
                   </div>
+
+                  {!isMultiDepartment ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Department</Label>
+                      <Select value={departmentId || 'none'} onValueChange={(v) => setDepartmentId(v === 'none' ? '' : v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No department</SelectItem>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Allowed Departments</Label>
+                      <div className="space-y-2 border rounded-md p-3 max-h-40 overflow-y-auto bg-background">
+                        {departments.map((dept) => {
+                          const checked = allowedDepartments.includes(dept.id);
+                          return (
+                            <div key={dept.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`dept-${dept.id}`}
+                                checked={checked}
+                                onCheckedChange={(isChecked) => {
+                                  if (isChecked) {
+                                    setAllowedDepartments([...allowedDepartments, dept.id]);
+                                  } else {
+                                    setAllowedDepartments(allowedDepartments.filter(id => id !== dept.id));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`dept-${dept.id}`} className="text-xs cursor-pointer">
+                                {dept.name}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="deadline">Deadline</Label>
                     <Input
@@ -329,6 +410,85 @@ export default function FormBuilder() {
                   <div className="flex items-center justify-between">
                     <Label htmlFor="active">Active</Label>
                     <Switch id="active" checked={isActive} onCheckedChange={setIsActive} />
+                  </div>
+
+                  {/* Internship Type */}
+                  <div className="border-t pt-3 space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Internship Type</p>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is-paid">Paid Internship</Label>
+                      <Switch
+                        id="is-paid"
+                        checked={isPaid}
+                        onCheckedChange={(checked) => {
+                          setIsPaid(checked);
+                          if (!checked) setStipendAmount('');
+                        }}
+                      />
+                    </div>
+                    {isPaid && (
+                      <div className="space-y-2">
+                        <Label htmlFor="stipend">Stipend Amount (BDT/month)</Label>
+                        <Input
+                          id="stipend"
+                          type="number"
+                          min="0"
+                          value={stipendAmount}
+                          onChange={(e) => setStipendAmount(e.target.value)}
+                          placeholder="e.g. 5000"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Facilities */}
+                  <div className="space-y-2">
+                    <Label>Facilities / Perks</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newFacility}
+                        onChange={(e) => setNewFacility(e.target.value)}
+                        placeholder="Add a facility..."
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newFacility.trim()) {
+                              setFacilities([...facilities, newFacility.trim()]);
+                              setNewFacility('');
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => {
+                          if (newFacility.trim()) {
+                            setFacilities([...facilities, newFacility.trim()]);
+                            setNewFacility('');
+                          }
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {facilities.length > 0 && (
+                      <ul className="space-y-1 mt-1">
+                        {facilities.map((f, i) => (
+                          <li key={i} className="flex items-center justify-between text-xs bg-muted rounded px-2 py-1">
+                            <span className="truncate">{f}</span>
+                            <button
+                              type="button"
+                              className="ml-2 text-destructive hover:text-destructive/80"
+                              onClick={() => setFacilities(facilities.filter((_, idx) => idx !== i))}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -377,6 +537,9 @@ export default function FormBuilder() {
         open={!!editingField}
         onClose={() => setEditingField(null)}
         onSave={handleSaveField}
+        isMultiDepartment={isMultiDepartment}
+        allowedDepartments={allowedDepartments}
+        formDepartmentId={departmentId}
       />
     </DashboardLayout>
   );

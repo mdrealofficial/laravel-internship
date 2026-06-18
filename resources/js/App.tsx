@@ -25,6 +25,7 @@ import StaffAssessments from "./pages/staff/StaffAssessments";
 import StaffSettings from "./pages/staff/StaffSettings";
 import ApplicationList from "./pages/apply/ApplicationList";
 import ApplicationForm from "./pages/apply/ApplicationForm";
+import ApplicationStatusCheck from "./pages/apply/ApplicationStatusCheck";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             {/* Public Application Routes */}
             <Route path="/apply" element={<ApplicationList />} />
             <Route path="/apply/:slug" element={<ApplicationForm />} />
+            <Route path="/status" element={<ApplicationStatusCheck />} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />

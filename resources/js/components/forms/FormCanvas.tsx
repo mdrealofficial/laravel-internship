@@ -98,6 +98,44 @@ function SortableField({ field, onEdit, onDelete }: SortableFieldProps) {
             Click or drag to upload file
           </div>
         );
+      case 'range': {
+        const min = Number(field.options?.[0]) || 0;
+        const max = Number(field.options?.[1]) || 100;
+        const step = Number(field.options?.[2]) || 1;
+        return (
+          <div className="space-y-1">
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={step}
+              defaultValue={Math.round((min + max) / 2)}
+              className="w-full accent-primary cursor-not-allowed"
+              disabled
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Min: {min}</span>
+              <span>Max: {max}</span>
+            </div>
+          </div>
+        );
+      }
+      case 'skills':
+        return (
+          <div className="space-y-2 border border-dashed rounded p-3 bg-muted/30">
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+              Department Skills Checkboxes (Loaded dynamically at runtime)
+            </p>
+            <div className="space-y-1">
+              {['Skill A', 'Skill B', 'Skill C'].map((skill, i) => (
+                <label key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input type="checkbox" disabled />
+                  {skill} (Value: 100 / N points)
+                </label>
+              ))}
+            </div>
+          </div>
+        );
       default:
         return (
           <input
