@@ -36,6 +36,9 @@ const PLACEHOLDERS = [
   { key: '{{status_url}}', description: 'Application status check URL' },
   { key: '{{start_date}}', description: 'Internship start date' },
   { key: '{{end_date}}', description: 'Internship end date' },
+  { key: '{{interview_time}}', description: 'Scheduled interview date & time' },
+  { key: '{{interview_type}}', description: 'Interview medium/type' },
+  { key: '{{interview_link}}', description: 'Interview meeting link or venue location' },
 ];
 
 export const NotificationTemplateManager: React.FC = () => {
@@ -153,6 +156,8 @@ export const NotificationTemplateManager: React.FC = () => {
       'job_application_rejected': 'Job Application Rejected',
       'job_application_shortlisted': 'Job Application Shortlisted',
       'job_application_reviewing': 'Job Application Under Review',
+      'application_interview_scheduled': 'Internship Interview Scheduled',
+      'job_application_interview_scheduled': 'Job Interview Scheduled',
     };
     return labels[key] || key;
   };
