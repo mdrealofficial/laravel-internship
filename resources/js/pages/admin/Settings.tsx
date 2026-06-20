@@ -55,6 +55,22 @@ interface SiteSettings {
   certificate_default_theme: TemplateType;
   gemini_api_key: string | null;
   company_name: string | null;
+  admin_email: string | null;
+  footer_title: string | null;
+  footer_subtitle: string | null;
+  footer_website_url: string | null;
+  footer_website_text: string | null;
+  footer_address: string | null;
+  footer_copyright: string | null;
+  footer_terms_url: string | null;
+  footer_privacy_url: string | null;
+  footer_contact_url: string | null;
+  footer_instagram_url: string | null;
+  footer_facebook_url: string | null;
+  footer_twitter_url: string | null;
+  footer_youtube_url: string | null;
+  footer_tiktok_url: string | null;
+  footer_linkedin_url: string | null;
 }
 
 const Settings = () => {
@@ -84,6 +100,22 @@ const Settings = () => {
     certificate_default_theme: 'modern',
     gemini_api_key: null,
     company_name: 'DIGI5 LTD',
+    admin_email: null,
+    footer_title: null,
+    footer_subtitle: null,
+    footer_website_url: null,
+    footer_website_text: null,
+    footer_address: null,
+    footer_copyright: null,
+    footer_terms_url: null,
+    footer_privacy_url: null,
+    footer_contact_url: null,
+    footer_instagram_url: null,
+    footer_facebook_url: null,
+    footer_twitter_url: null,
+    footer_youtube_url: null,
+    footer_tiktok_url: null,
+    footer_linkedin_url: null,
   });
   const [companyName, setCompanyName] = useState('DIGI5 LTD');
   const [savingCompanyName, setSavingCompanyName] = useState(false);
@@ -93,6 +125,25 @@ const Settings = () => {
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingPattern, setUploadingPattern] = useState(false);
   const [savingPattern, setSavingPattern] = useState(false);
+
+  // Email Footer Branding States
+  const [adminEmail, setAdminEmail] = useState('');
+  const [footerTitle, setFooterTitle] = useState('');
+  const [footerSubtitle, setFooterSubtitle] = useState('');
+  const [footerWebsiteUrl, setFooterWebsiteUrl] = useState('');
+  const [footerWebsiteText, setFooterWebsiteText] = useState('');
+  const [footerAddress, setFooterAddress] = useState('');
+  const [footerCopyright, setFooterCopyright] = useState('');
+  const [footerTermsUrl, setFooterTermsUrl] = useState('');
+  const [footerPrivacyUrl, setFooterPrivacyUrl] = useState('');
+  const [footerContactUrl, setFooterContactUrl] = useState('');
+  const [footerInstagramUrl, setFooterInstagramUrl] = useState('');
+  const [footerFacebookUrl, setFooterFacebookUrl] = useState('');
+  const [footerTwitterUrl, setFooterTwitterUrl] = useState('');
+  const [footerYoutubeUrl, setFooterYoutubeUrl] = useState('');
+  const [footerTiktokUrl, setFooterTiktokUrl] = useState('');
+  const [footerLinkedinUrl, setFooterLinkedinUrl] = useState('');
+  const [savingEmailBranding, setSavingEmailBranding] = useState(false);
 
   // Gemini API Key state
   const [geminiApiKey, setGeminiApiKey] = useState<string | null>('');
@@ -135,6 +186,22 @@ const Settings = () => {
           certificate_default_theme: 'modern',
           gemini_api_key: null,
           company_name: 'DIGI5 LTD',
+          admin_email: null,
+          footer_title: null,
+          footer_subtitle: null,
+          footer_website_url: null,
+          footer_website_text: null,
+          footer_address: null,
+          footer_copyright: null,
+          footer_terms_url: null,
+          footer_privacy_url: null,
+          footer_contact_url: null,
+          footer_instagram_url: null,
+          footer_facebook_url: null,
+          footer_twitter_url: null,
+          footer_youtube_url: null,
+          footer_tiktok_url: null,
+          footer_linkedin_url: null,
         };
         settings.forEach(s => {
           if (s.setting_key === 'certificate_pattern_enabled') {
@@ -150,6 +217,22 @@ const Settings = () => {
         setSiteSettings(settingsMap);
         setCompanyName(settingsMap.company_name || 'DIGI5 LTD');
         setGeminiApiKey(settingsMap.gemini_api_key || '');
+        setAdminEmail(settingsMap.admin_email || '');
+        setFooterTitle(settingsMap.footer_title || '');
+        setFooterSubtitle(settingsMap.footer_subtitle || '');
+        setFooterWebsiteUrl(settingsMap.footer_website_url || '');
+        setFooterWebsiteText(settingsMap.footer_website_text || '');
+        setFooterAddress(settingsMap.footer_address || '');
+        setFooterCopyright(settingsMap.footer_copyright || '');
+        setFooterTermsUrl(settingsMap.footer_terms_url || '');
+        setFooterPrivacyUrl(settingsMap.footer_privacy_url || '');
+        setFooterContactUrl(settingsMap.footer_contact_url || '');
+        setFooterInstagramUrl(settingsMap.footer_instagram_url || '');
+        setFooterFacebookUrl(settingsMap.footer_facebook_url || '');
+        setFooterTwitterUrl(settingsMap.footer_twitter_url || '');
+        setFooterYoutubeUrl(settingsMap.footer_youtube_url || '');
+        setFooterTiktokUrl(settingsMap.footer_tiktok_url || '');
+        setFooterLinkedinUrl(settingsMap.footer_linkedin_url || '');
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -180,6 +263,73 @@ const Settings = () => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setSavingApiKey(false);
+    }
+  };
+
+  const saveEmailBranding = async () => {
+    if (!user) return;
+    setSavingEmailBranding(true);
+    
+    try {
+      const settingsToSave = [
+        { key: 'admin_email', value: adminEmail },
+        { key: 'footer_title', value: footerTitle },
+        { key: 'footer_subtitle', value: footerSubtitle },
+        { key: 'footer_website_url', value: footerWebsiteUrl },
+        { key: 'footer_website_text', value: footerWebsiteText },
+        { key: 'footer_address', value: footerAddress },
+        { key: 'footer_copyright', value: footerCopyright },
+        { key: 'footer_terms_url', value: footerTermsUrl },
+        { key: 'footer_privacy_url', value: footerPrivacyUrl },
+        { key: 'footer_contact_url', value: footerContactUrl },
+        { key: 'footer_instagram_url', value: footerInstagramUrl },
+        { key: 'footer_facebook_url', value: footerFacebookUrl },
+        { key: 'footer_twitter_url', value: footerTwitterUrl },
+        { key: 'footer_youtube_url', value: footerYoutubeUrl },
+        { key: 'footer_tiktok_url', value: footerTiktokUrl },
+        { key: 'footer_linkedin_url', value: footerLinkedinUrl },
+      ];
+
+      const promises = settingsToSave.map(s => 
+        supabase
+          .from('site_settings')
+          .upsert({ 
+            setting_key: s.key, 
+            setting_value: s.value || null,
+            updated_at: new Date().toISOString(),
+            updated_by: user.id 
+          }, { onConflict: 'setting_key' })
+      );
+
+      const results = await Promise.all(promises);
+      const errResult = results.find(r => r.error);
+      if (errResult) throw errResult.error;
+
+      setSiteSettings(prev => ({
+        ...prev,
+        admin_email: adminEmail,
+        footer_title: footerTitle,
+        footer_subtitle: footerSubtitle,
+        footer_website_url: footerWebsiteUrl,
+        footer_website_text: footerWebsiteText,
+        footer_address: footerAddress,
+        footer_copyright: footerCopyright,
+        footer_terms_url: footerTermsUrl,
+        footer_privacy_url: footerPrivacyUrl,
+        footer_contact_url: footerContactUrl,
+        footer_instagram_url: footerInstagramUrl,
+        footer_facebook_url: footerFacebookUrl,
+        footer_twitter_url: footerTwitterUrl,
+        footer_youtube_url: footerYoutubeUrl,
+        footer_tiktok_url: footerTiktokUrl,
+        footer_linkedin_url: footerLinkedinUrl,
+      }));
+
+      toast({ title: 'Success', description: 'Email branding & footer settings saved successfully' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setSavingEmailBranding(false);
     }
   };
 
@@ -533,27 +683,27 @@ const Settings = () => {
           <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto p-1">
             <TabsTrigger value="profile" className="flex items-center gap-2 py-2.5">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile</span>
+              <span className="hidden sm:inline">Profile & Security</span>
             </TabsTrigger>
             <TabsTrigger value="branding" className="flex items-center gap-2 py-2.5">
               <Image className="h-4 w-4" />
-              <span className="hidden sm:inline">Branding & AI</span>
+              <span className="hidden sm:inline">Branding</span>
             </TabsTrigger>
-            <TabsTrigger value="navigation" className="flex items-center gap-2 py-2.5">
-              <Menu className="h-4 w-4" />
-              <span className="hidden sm:inline">Navigation</span>
+            <TabsTrigger value="certificates" className="flex items-center gap-2 py-2.5">
+              <Award className="h-4 w-4" />
+              <span className="hidden sm:inline">Certificate Designer</span>
             </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center gap-2 py-2.5">
+            <TabsTrigger value="communication" className="flex items-center gap-2 py-2.5">
               <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Email</span>
-            </TabsTrigger>
-            <TabsTrigger value="sms" className="flex items-center gap-2 py-2.5">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">SMS</span>
+              <span className="hidden sm:inline">Communication</span>
             </TabsTrigger>
             <TabsTrigger value="templates" className="flex items-center gap-2 py-2.5">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Templates</span>
+            </TabsTrigger>
+            <TabsTrigger value="navigation" className="flex items-center gap-2 py-2.5">
+              <Menu className="h-4 w-4" />
+              <span className="hidden sm:inline">Navigation</span>
             </TabsTrigger>
           </TabsList>
 
@@ -630,6 +780,48 @@ const Settings = () => {
                 <Button onClick={changePassword} disabled={changingPassword || !newPassword || !confirmPassword}>
                   {changingPassword ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
                   Change Password
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* AI Candidate Screening API Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-indigo-500 animate-pulse" />
+                  AI Candidate Screening (Gemini API)
+                </CardTitle>
+                <CardDescription>
+                  Configure your Google Gemini API key to enable AI Candidate Screening. If no key is set, the system will use a fallback mock generator.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+                  <div className="flex gap-2 max-w-xl">
+                    <Input
+                      id="geminiApiKey"
+                      type={showApiKey ? "text" : "password"}
+                      value={geminiApiKey || ''}
+                      onChange={(e) => setGeminiApiKey(e.target.value)}
+                      placeholder="AIzaSy..."
+                      className="font-mono"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      type="button"
+                    >
+                      {showApiKey ? "Hide" : "Show"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Get an API key from the <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">Google AI Studio</a>.
+                  </p>
+                </div>
+                <Button onClick={saveGeminiApiKey} disabled={savingApiKey}>
+                  {savingApiKey ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save API Key
                 </Button>
               </CardContent>
             </Card>
@@ -802,8 +994,21 @@ const Settings = () => {
                   </div>
                 </div>
 
-                <Separator />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
+          {/* Certificate Designer Tab */}
+          <TabsContent value="certificates" className="space-y-6 max-w-4xl">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5 text-indigo-500" />
+                  Certificate Design
+                </CardTitle>
+                <CardDescription>Configure repeating background patterns and default theme layout preferences for issued certificates.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 {/* Certificate Background Pattern */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -972,68 +1177,222 @@ const Settings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* AI Candidate Screening API Settings Card */}
+          {/* Communication Channels Tab */}
+          <TabsContent value="communication" className="space-y-6 max-w-4xl">
+            {user && <SMTPSettingsCard userId={user.id} />}
+            {user && <SMSSettingsCard userId={user.id} />}
+
+            {/* Email Footer & Socials Branding Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-indigo-500 animate-pulse" />
-                  AI Candidate Screening (Gemini API)
+                  <Mail className="h-5 w-5 text-indigo-500" />
+                  Email Footer & Socials Branding
                 </CardTitle>
                 <CardDescription>
-                  Configure your Google Gemini API key to enable AI Candidate Screening. If no key is set, the system will use a fallback mock generator.
+                  Configure company details, legal links, and social media channels to be displayed in all outgoing email templates.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Admin Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="geminiApiKey">Gemini API Key</Label>
-                  <div className="flex gap-2 max-w-xl">
-                    <Input
-                      id="geminiApiKey"
-                      type={showApiKey ? "text" : "password"}
-                      value={geminiApiKey || ''}
-                      onChange={(e) => setGeminiApiKey(e.target.value)}
-                      placeholder="AIzaSy..."
-                      className="font-mono"
-                    />
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      type="button"
-                    >
-                      {showApiKey ? "Hide" : "Show"}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Get an API key from the <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">Google AI Studio</a>.
-                  </p>
+                  <Label htmlFor="admin-email">Admin Notification Email</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="admin@yourcompany.com"
+                    className="max-w-xl"
+                  />
+                  <p className="text-xs text-muted-foreground">Default email address used for admin alerts and notifications.</p>
                 </div>
-                <Button onClick={saveGeminiApiKey} disabled={savingApiKey}>
-                  {savingApiKey ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  Save API Key
-                </Button>
+
+                <Separator />
+
+                {/* Footer Copy & Address */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-title">Footer Title / Headline</Label>
+                    <Input
+                      id="footer-title"
+                      value={footerTitle}
+                      onChange={(e) => setFooterTitle(e.target.value)}
+                      placeholder="e.g. Receive Globally & Spend Locally"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-subtitle">Footer Subtitle / Description</Label>
+                    <Input
+                      id="footer-subtitle"
+                      value={footerSubtitle}
+                      onChange={(e) => setFooterSubtitle(e.target.value)}
+                      placeholder="e.g. Download the app and start receiving money..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-website-url">Website Redirect URL</Label>
+                    <Input
+                      id="footer-website-url"
+                      value={footerWebsiteUrl}
+                      onChange={(e) => setFooterWebsiteUrl(e.target.value)}
+                      placeholder="e.g. https://www.yourcompany.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-website-text">Website Label Text</Label>
+                    <Input
+                      id="footer-website-text"
+                      value={footerWebsiteText}
+                      onChange={(e) => setFooterWebsiteText(e.target.value)}
+                      placeholder="e.g. www.yourcompany.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-copyright">Copyright Text</Label>
+                    <Input
+                      id="footer-copyright"
+                      value={footerCopyright}
+                      onChange={(e) => setFooterCopyright(e.target.value)}
+                      placeholder="e.g. ©YourCompany Ltd. 2026"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="footer-address">Office Address</Label>
+                    <Input
+                      id="footer-address"
+                      value={footerAddress}
+                      onChange={(e) => setFooterAddress(e.target.value)}
+                      placeholder="e.g. 124 City Road, London, UK"
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Legal Links */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Legal & Support Links</h4>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="footer-terms">Terms URL</Label>
+                      <Input
+                        id="footer-terms"
+                        value={footerTermsUrl}
+                        onChange={(e) => setFooterTermsUrl(e.target.value)}
+                        placeholder="https://company.com/terms"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="footer-privacy">Privacy Policy URL</Label>
+                      <Input
+                        id="footer-privacy"
+                        value={footerPrivacyUrl}
+                        onChange={(e) => setFooterPrivacyUrl(e.target.value)}
+                        placeholder="https://company.com/privacy"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="footer-contact">Contact Us URL</Label>
+                      <Input
+                        id="footer-contact"
+                        value={footerContactUrl}
+                        onChange={(e) => setFooterContactUrl(e.target.value)}
+                        placeholder="https://company.com/contact"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Social Links */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Social Media URLs</h4>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="social-instagram">Instagram URL</Label>
+                      <Input
+                        id="social-instagram"
+                        value={footerInstagramUrl}
+                        onChange={(e) => setFooterInstagramUrl(e.target.value)}
+                        placeholder="https://instagram.com/handle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="social-facebook">Facebook URL</Label>
+                      <Input
+                        id="social-facebook"
+                        value={footerFacebookUrl}
+                        onChange={(e) => setFooterFacebookUrl(e.target.value)}
+                        placeholder="https://facebook.com/handle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="social-twitter">X (Twitter) URL</Label>
+                      <Input
+                        id="social-twitter"
+                        value={footerTwitterUrl}
+                        onChange={(e) => setFooterTwitterUrl(e.target.value)}
+                        placeholder="https://x.com/handle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="social-youtube">YouTube URL</Label>
+                      <Input
+                        id="social-youtube"
+                        value={footerYoutubeUrl}
+                        onChange={(e) => setFooterYoutubeUrl(e.target.value)}
+                        placeholder="https://youtube.com/c/handle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="social-tiktok">TikTok URL</Label>
+                      <Input
+                        id="social-tiktok"
+                        value={footerTiktokUrl}
+                        onChange={(e) => setFooterTiktokUrl(e.target.value)}
+                        placeholder="https://tiktok.com/@handle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="social-linkedin">LinkedIn URL</Label>
+                      <Input
+                        id="social-linkedin"
+                        value={footerLinkedinUrl}
+                        onChange={(e) => setFooterLinkedinUrl(e.target.value)}
+                        placeholder="https://linkedin.com/company/handle"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Button onClick={saveEmailBranding} disabled={savingEmailBranding}>
+                    {savingEmailBranding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save Email Settings
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Navigation Tab */}
-          <TabsContent value="navigation" className="max-w-4xl">
-            <NavMenuManager />
-          </TabsContent>
-
-          {/* Email Tab */}
-          <TabsContent value="email" className="max-w-4xl">
-            {user && <SMTPSettingsCard userId={user.id} />}
-          </TabsContent>
-
-          {/* SMS Tab */}
-          <TabsContent value="sms" className="max-w-4xl">
-            {user && <SMSSettingsCard userId={user.id} />}
           </TabsContent>
 
           {/* Templates Tab */}
           <TabsContent value="templates" className="max-w-4xl">
             <NotificationTemplateManager />
+          </TabsContent>
+
+          {/* Navigation Tab */}
+          <TabsContent value="navigation" className="max-w-4xl">
+            <NavMenuManager />
           </TabsContent>
         </Tabs>
       </div>

@@ -33,7 +33,10 @@ import JobApplicationManagement from "./pages/admin/JobApplicationManagement";
 import JobBatchMessaging from "./pages/admin/JobBatchMessaging";
 import JobApplicationList from "./pages/apply/JobApplicationList";
 import JobApplicationForm from "./pages/apply/JobApplicationForm";
+import NotificationReports from "./pages/admin/NotificationReports";
+import NotificationLogs from "./pages/admin/NotificationLogs";
 import NotFound from "./pages/NotFound";
+import { Unsubscribe } from "./pages/Unsubscribe";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +53,7 @@ const App = () => (
             <Route path="/login" element={<Auth />} />
             <Route path="/auth" element={<Navigate to="/login" replace />} />
             <Route path="/verify" element={<Navigate to="/" replace />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
             
             {/* Public Application Routes */}
             <Route path="/apply" element={<ApplicationList />} />
@@ -74,6 +78,8 @@ const App = () => (
             <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={['admin']}><ApplicationManagement /></ProtectedRoute>} />
             <Route path="/admin/job-applications" element={<ProtectedRoute allowedRoles={['admin']}><JobApplicationManagement /></ProtectedRoute>} />
             <Route path="/admin/job-batch-messaging" element={<ProtectedRoute allowedRoles={['admin']}><JobBatchMessaging /></ProtectedRoute>} />
+            <Route path="/admin/notification-reports" element={<ProtectedRoute allowedRoles={['admin']}><NotificationReports /></ProtectedRoute>} />
+            <Route path="/admin/notification-logs" element={<ProtectedRoute allowedRoles={['admin']}><NotificationLogs /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
             <Route path="/admin/roles" element={<ProtectedRoute allowedRoles={['admin']}><RoleTitleManagement /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />

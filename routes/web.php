@@ -24,6 +24,11 @@ Route::prefix('api/supabase-compat')->group(function () {
 Route::get('storage/{bucket}/{path}', [StorageCompatController::class, 'serve'])->where('path', '.*');
 Route::get('storage-asset/{bucket}/{path}', [StorageCompatController::class, 'serve'])->where('path', '.*');
 
+// Email Tracking & WebView Routes
+Route::get('api/mail-track/open/{id}', [EdgeFunctionCompatController::class, 'trackOpen']);
+Route::get('api/mail-track/click/{id}', [EdgeFunctionCompatController::class, 'trackClick']);
+Route::get('api/mail-track/webview/{id}', [EdgeFunctionCompatController::class, 'webview']);
+
 // Wildcard SPA route
 Route::get('/{any?}', function () {
     return view('app');

@@ -19,7 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Briefcase,
-  Mail
+  Mail,
+  BarChart3,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,18 +34,25 @@ interface DashboardLayoutProps {
 
 const adminNavItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/admin/forms', label: 'Forms', icon: FileEdit },
-  { path: '/admin/applications', label: 'Applications', icon: Inbox },
-  { path: '/admin/job-forms', label: 'Job Forms', icon: FileEdit },
+  // Job Recruitment Group
+  { path: '/admin/job-forms', label: 'Job Opportunities', icon: Briefcase },
   { path: '/admin/job-applications', label: 'Job Applications', icon: Inbox },
-  { path: '/admin/job-batch-messaging', label: 'Job Messaging', icon: Mail },
-  { path: '/admin/interns', label: 'Interns', icon: Users },
-  { path: '/admin/batch-messaging', label: 'Batch Messaging', icon: Mail },
-  { path: '/admin/roles', label: 'Role Titles', icon: Briefcase },
-  { path: '/admin/staff', label: 'Staff', icon: UserCog },
+  { path: '/admin/job-batch-messaging', label: 'Job Broadcasts', icon: Mail },
+  // Interns Group
+  { path: '/admin/forms', label: 'Evaluation Forms', icon: FileEdit },
+  { path: '/admin/applications', label: 'Evaluation Submissions', icon: ClipboardCheck },
+  { path: '/admin/interns', label: 'Intern Directory', icon: Users },
+  { path: '/admin/batch-messaging', label: 'Intern Broadcasts', icon: Mail },
+  // Admin & Directories
+  { path: '/admin/staff', label: 'Staff Directory', icon: UserCog },
   { path: '/admin/departments', label: 'Departments', icon: Building2 },
+  { path: '/admin/roles', label: 'Role Titles', icon: Briefcase },
   { path: '/admin/certificates', label: 'Certificates', icon: Award },
-  { path: '/admin/reports', label: 'Reports', icon: FileText },
+  // Reports & Logs
+  { path: '/admin/reports', label: 'Performance Reports', icon: FileText },
+  { path: '/admin/notification-reports', label: 'Campaign Analytics', icon: BarChart3 },
+  { path: '/admin/notification-logs', label: 'Message Logs', icon: History },
+  // Settings
   { path: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -18,6 +18,8 @@ interface SMTPConfig {
   from_email: string;
   from_name: string;
   encryption: 'ssl' | 'tls' | 'none';
+  unsubscribe_enabled?: boolean;
+  unsubscribe_url?: string;
 }
 
 interface Props {
@@ -41,6 +43,8 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
     from_email: '',
     from_name: '',
     encryption: 'tls',
+    unsubscribe_enabled: false,
+    unsubscribe_url: '',
   });
 
   useEffect(() => {
@@ -75,6 +79,8 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
             from_email: savedConfig.from_email || '',
             from_name: savedConfig.from_name || '',
             encryption: encryption,
+            unsubscribe_enabled: savedConfig.unsubscribe_enabled || false,
+            unsubscribe_url: savedConfig.unsubscribe_url || '',
           });
 
           if (savedConfig.from_email) {
@@ -302,6 +308,33 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
             checked={testMode}
             onCheckedChange={setTestMode}
           />
+        </div>
+
+        <div className="space-y-4 p-4 rounded-lg border bg-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-semibold text-base">Unsubscribe Settings</Label>
+              <p className="text-sm text-muted-foreground">Add List-Unsubscribe headers and automated links to emails</p>
+            </div>
+            <Switch
+              checked={config.unsubscribe_enabled || false}
+              onCheckedChange={(checked) => setConfig({ ...config, unsubscribe_enabled: checked })}
+            />
+          </div>
+          {(config.unsubscribe_enabled || false) && (
+            <div className="space-y-2 pt-2 border-t">
+              <Label htmlFor="unsubscribe-url">Unsubscribe Link / Redirect URL</Label>
+              <Input
+                id="unsubscribe-url"
+                value={config.unsubscribe_url || ''}
+                onChange={(e) => setConfig({ ...config, unsubscribe_url: e.target.value })}
+                placeholder="https://example.com/unsubscribe or leave empty for default (/unsubscribe)"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter an external URL or leave it blank to use the built-in unsubscribe page. You can use <code>{"{{recipient_email}}"}</code> as a placeholder.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-3 p-4 rounded-lg border bg-card">

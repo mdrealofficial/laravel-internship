@@ -11,10 +11,18 @@ class NotificationLog extends Model
 
     public $timestamps = false; // sent_at maps to created_at basically, manually handled
 
-    protected $fillable = ['id', 'recipient', 'notification_type', 'subject', 'body', 'template_key', 'status', 'error_message', 'metadata', 'sent_at'];
+    protected $fillable = [
+        'id', 'recipient', 'notification_type', 'subject', 'body', 
+        'template_key', 'status', 'error_message', 'metadata', 'sent_at',
+        'campaign_name', 'opened', 'clicked', 'opened_at', 'clicked_at'
+    ];
 
     protected $casts = [
         'metadata' => 'json',
         'sent_at' => 'datetime',
+        'opened' => 'boolean',
+        'clicked' => 'boolean',
+        'opened_at' => 'datetime',
+        'clicked_at' => 'datetime',
     ];
 }

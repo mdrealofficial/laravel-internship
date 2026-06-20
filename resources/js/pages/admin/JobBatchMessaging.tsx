@@ -47,11 +47,14 @@ export default function JobBatchMessaging() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   
   // Channels and Body States
+  const [campaignName, setCampaignName] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
   const [sendSMS, setSendSMS] = useState(false);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [smsBody, setSmsBody] = useState('');
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
   
   // Sending Process States
   const [sending, setSending] = useState(false);
@@ -106,6 +109,10 @@ export default function JobBatchMessaging() {
   const recipients = getSelectedRecipients();
 
   const handleSendBroadcast = async () => {
+    if (!campaignName.trim()) {
+      toast.error('Campaign Name is required.');
+      return;
+    }
     if (recipients.length === 0) {
       toast.error('No matching job applicants found for the selected targets.');
       return;
@@ -120,6 +127,10 @@ export default function JobBatchMessaging() {
     }
     if (sendSMS && !smsBody.trim()) {
       toast.error('SMS Message Body is required.');
+      return;
+    }
+    if (isScheduled && !scheduledAt) {
+      toast.error('Please specify a scheduled Date & Time.');
       return;
     }
 
@@ -164,7 +175,9 @@ export default function JobBatchMessaging() {
             body: emailBody,
             sms_body: smsBody,
             data: personalizationData,
-            force_send: true
+            force_send: true,
+            campaign_name: campaignName,
+            scheduled_at: isScheduled && scheduledAt ? new Date(scheduledAt).toISOString() : undefined
           }
         });
 
@@ -173,13 +186,18 @@ export default function JobBatchMessaging() {
         }
 
         if (data && data.success) {
-          if (sendEmail && email) {
-            emailStatus = data.results?.email?.success ? 'success' : 'failed';
-            if (emailStatus === 'failed') errorMessage += `Email: ${data.results?.email?.error || 'Failed'}; `;
-          }
-          if (sendSMS && phone) {
-            smsStatus = data.results?.sms?.success ? 'success' : 'failed';
-            if (smsStatus === 'failed') errorMessage += `SMS: ${data.results?.sms?.error || 'Failed'}; `;
+          if (isScheduled) {
+            emailStatus = sendEmail && email ? 'scheduled' : 'skipped';
+            smsStatus = sendSMS && phone ? 'scheduled' : 'skipped';
+          } else {
+            if (sendEmail && email) {
+              emailStatus = data.results?.email?.success ? 'success' : 'failed';
+              if (emailStatus === 'failed') errorMessage += `Email: ${data.results?.email?.error || 'Failed'}; `;
+            }
+            if (sendSMS && phone) {
+              smsStatus = data.results?.sms?.success ? 'success' : 'failed';
+              if (smsStatus === 'failed') errorMessage += `SMS: ${data.results?.sms?.error || 'Failed'}; `;
+            }
           }
         } else {
           throw new Error(data?.error || 'Failed to dispatch broadcast');
@@ -191,8 +209,8 @@ export default function JobBatchMessaging() {
       }
 
       const isSuccess = 
-        (!sendEmail || !email || emailStatus === 'success') && 
-        (!sendSMS || !phone || smsStatus === 'success');
+        (!sendEmail || !email || emailStatus === 'success' || emailStatus === 'scheduled') && 
+        (!sendSMS || !phone || smsStatus === 'success' || smsStatus === 'scheduled');
 
       const entry: LogEntry = {
         name,
@@ -215,7 +233,7 @@ export default function JobBatchMessaging() {
     }
 
     setSending(false);
-    toast.success('Job broadcast transmission completed!');
+    toast.success(isScheduled ? 'Job broadcast campaign successfully scheduled!' : 'Job broadcast transmission completed!');
   };
 
   const insertVariable = (variable: string, channel: 'email' | 'sms') => {
@@ -357,7 +375,18 @@ export default function JobBatchMessaging() {
                   <CardDescription>Configure message details and channels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center gap-6 border-b pb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="campaignName" className="font-semibold text-slate-700">Campaign Name <span className="text-red-500">*</span></Label>
+                    <Input 
+                      id="campaignName" 
+                      placeholder="e.g. Job Welcome Onboarding 2026" 
+                      value={campaignName} 
+                      onChange={(e) => setCampaignName(e.target.value)} 
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-6 border-b pb-4 pt-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox 
                         id="emailChannel" 
@@ -378,6 +407,34 @@ export default function JobBatchMessaging() {
                         <MessageSquare size={16} className="text-slate-500" /> Send SMS
                       </Label>
                     </div>
+                  </div>
+
+                  {/* Scheduling System */}
+                  <div className="space-y-4 border-b pb-4 pt-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="scheduleToggle" 
+                        checked={isScheduled} 
+                        onCheckedChange={(checked) => setIsScheduled(!!checked)} 
+                      />
+                      <Label htmlFor="scheduleToggle" className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        Schedule Send (Queue System)
+                      </Label>
+                    </div>
+                    {isScheduled && (
+                      <div className="space-y-2 max-w-md pl-6 animate-fade-in">
+                        <Label htmlFor="scheduledAt" className="text-xs text-slate-500 font-semibold">Scheduled Date & Time <span className="text-red-500">*</span></Label>
+                        <Input 
+                          id="scheduledAt" 
+                          type="datetime-local" 
+                          value={scheduledAt} 
+                          onChange={(e) => setScheduledAt(e.target.value)} 
+                          required
+                          className="w-full text-sm"
+                        />
+                        <p className="text-[11px] text-muted-foreground">Specify the local date and time when this broadcast should automatically send.</p>
+                      </div>
+                    )}
                   </div>
 
                   {sendEmail && (
