@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Loader2, Calendar, Building2, User, Mail, ShieldAlert, CheckCircle2, AlertCircle, Clock, FileText } from 'lucide-react';
 import { format } from 'date-fns';
+import { PublicNavbar } from '@/components/layout/PublicNavbar';
 
 interface Application {
   id: string;
@@ -50,7 +51,9 @@ export default function ApplicationStatusCheck() {
   const [searched, setSearched] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
-  const [companyName, setCompanyName] = useState('DIGI5 LTD');
+  const [companyName, setCompanyName] = useState(() => {
+    return (window as any).__SITE_SETTINGS__?.companyName || 'DIGI5 LTD';
+  });
 
   useEffect(() => {
     const fetchCompanyName = async () => {
@@ -131,20 +134,7 @@ export default function ApplicationStatusCheck() {
         backgroundSize: '40px 40px',
       }}
     >
-      {/* Public Header */}
-      <header className="border-b bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            <div className="p-1.5 rounded-lg bg-primary text-primary-foreground">
-              <FileText className="h-5 w-5" />
-            </div>
-            <span>{companyName} Portal</span>
-          </div>
-          <Button variant="ghost" asChild>
-            <a href="/apply">View Careers</a>
-          </Button>
-        </div>
-      </header>
+      <PublicNavbar />
 
       {/* Main Content Area */}
       <main className="flex-1 container mx-auto px-4 py-12 max-w-3xl">

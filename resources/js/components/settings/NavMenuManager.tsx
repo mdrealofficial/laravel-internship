@@ -17,11 +17,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AVAILABLE_ICONS, LucideIcon } from '@/components/layout/PublicNavbar';
 
 interface MenuItem {
   id: string;
   label: string;
   url: string;
+  icon: string | null;
   is_external: boolean;
   display_order: number;
   is_active: boolean;
@@ -32,7 +35,7 @@ export const NavMenuManager = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [newItem, setNewItem] = useState({ label: '', url: '', is_external: false });
+  const [newItem, setNewItem] = useState({ label: '', url: '', icon: '', is_external: false });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -72,6 +75,7 @@ export const NavMenuManager = () => {
         .insert({
           label: newItem.label,
           url: newItem.url,
+          icon: newItem.icon || null,
           is_external: newItem.is_external,
           display_order: maxOrder + 1,
           is_active: true
@@ -82,7 +86,7 @@ export const NavMenuManager = () => {
       if (error) throw error;
 
       setMenuItems([...menuItems, data]);
-      setNewItem({ label: '', url: '', is_external: false });
+      setNewItem({ label: '', url: '', icon: '', is_external: false });
       toast({ title: 'Success', description: 'Menu item added' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -181,7 +185,7 @@ export const NavMenuManager = () => {
           {/* Add new item form */}
           <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
             <h4 className="font-medium">Add New Menu Item</h4>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="newLabel">Label</Label>
                 <Input
@@ -199,6 +203,28 @@ export const NavMenuManager = () => {
                   value={newItem.url}
                   onChange={(e) => setNewItem({ ...newItem, url: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newIcon">Icon</Label>
+                <Select
+                  value={newItem.icon || 'none'}
+                  onValueChange={(val) => setNewItem({ ...newItem, icon: val === 'none' ? '' : val })}
+                >
+                  <SelectTrigger id="newIcon" className="w-full">
+                    <SelectValue placeholder="Select Icon" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Icon</SelectItem>
+                    {AVAILABLE_ICONS.map((icon) => (
+                      <SelectItem key={icon.name} value={icon.name}>
+                        <span className="flex items-center gap-2">
+                          <LucideIcon name={icon.name} className="h-4 w-4" />
+                          {icon.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -255,7 +281,7 @@ export const NavMenuManager = () => {
                       </Button>
                     </div>
                     
-                    <div className="flex-1 grid gap-2 md:grid-cols-2">
+                    <div className="flex-1 grid gap-2 md:grid-cols-3">
                       <Input
                         value={item.label}
                         onChange={(e) => updateMenuItem(item.id, { label: e.target.value })}
@@ -266,6 +292,25 @@ export const NavMenuManager = () => {
                         onChange={(e) => updateMenuItem(item.id, { url: e.target.value })}
                         placeholder="URL"
                       />
+                      <Select
+                        value={item.icon || 'none'}
+                        onValueChange={(val) => updateMenuItem(item.id, { icon: val === 'none' ? null : val })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select Icon" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Icon</SelectItem>
+                          {AVAILABLE_ICONS.map((icon) => (
+                            <SelectItem key={icon.name} value={icon.name}>
+                              <span className="flex items-center gap-2">
+                                <LucideIcon name={icon.name} className="h-4 w-4" />
+                                {icon.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="flex items-center gap-3">

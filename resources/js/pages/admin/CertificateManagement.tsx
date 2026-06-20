@@ -31,6 +31,9 @@ interface SiteSettings {
   certificate_default_theme: TemplateType;
   company_name?: string | null;
   certificate_download_format?: 'pdf' | 'png' | 'jpeg';
+  certificate_pattern_enabled?: boolean;
+  certificate_pattern_url?: string | null;
+  certificate_pattern_opacity?: number;
 }
 
 const CertificateManagement = () => {
@@ -128,13 +131,16 @@ const CertificateManagement = () => {
       const settings = settingsRes.data || [];
 
       // Map site settings
-      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null, certificate_default_theme: 'modern', company_name: 'DIGI5 LTD', certificate_download_format: 'pdf' };
+      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null, certificate_default_theme: 'modern', company_name: 'DIGI5 LTD', certificate_download_format: 'pdf', certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5 };
       settings.forEach(s => {
         if (s.setting_key === 'company_logo_url') settingsMap.company_logo_url = s.setting_value;
         if (s.setting_key === 'signature_url') settingsMap.signature_url = s.setting_value;
         if (s.setting_key === 'certificate_default_theme') settingsMap.certificate_default_theme = (s.setting_value as TemplateType) || 'modern';
         if (s.setting_key === 'company_name') settingsMap.company_name = s.setting_value;
         if (s.setting_key === 'certificate_download_format') settingsMap.certificate_download_format = (s.setting_value as 'pdf' | 'png' | 'jpeg') || 'pdf';
+        if (s.setting_key === 'certificate_pattern_enabled') settingsMap.certificate_pattern_enabled = s.setting_value === 'true';
+        if (s.setting_key === 'certificate_pattern_url') settingsMap.certificate_pattern_url = s.setting_value;
+        if (s.setting_key === 'certificate_pattern_opacity') settingsMap.certificate_pattern_opacity = parseInt(s.setting_value || '5', 10);
       });
       setSiteSettings(settingsMap);
       
@@ -425,7 +431,7 @@ const CertificateManagement = () => {
 
   const getTemplateBadge = (template: string) => {
     const option = templateOptions.find(t => t.id === template);
-    return <Badge variant="outline" className="text-xs">{option?.name || 'Royal Gold'}</Badge>;
+    return <Badge variant="outline" className="text-xs">{option?.name || 'Modern Tech'}</Badge>;
   };
 
   const formatDate = (date: string) => new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -567,7 +573,7 @@ const CertificateManagement = () => {
                             <p className="text-xs text-muted-foreground">{cert.intern?.role_title}</p>
                           </div>
                         </TableCell>
-                        <TableCell>{getTemplateBadge(cert.template_type || 'royal')}</TableCell>
+                        <TableCell>{getTemplateBadge(cert.template_type || 'modern')}</TableCell>
                         <TableCell>{cert.issued_date ? new Date(cert.issued_date).toLocaleDateString() : '-'}</TableCell>
                         <TableCell>{getStatusBadge(cert.status)}</TableCell>
                         <TableCell>
@@ -642,7 +648,7 @@ const CertificateManagement = () => {
               <div className="overflow-auto">
                 <div ref={certificateRef} className="inline-block">
                   <CertificateTemplate
-                    template={(previewCert.template_type as TemplateType) || 'royal'}
+                    template={(previewCert.template_type as TemplateType) || 'modern'}
                     data={{
                       recipientName: previewCert.intern?.profile?.full_name || 'Unknown',
                       roleTitle: previewCert.intern?.role_title || 'Intern',
@@ -655,6 +661,9 @@ const CertificateManagement = () => {
                       companyLogoUrl: siteSettings.company_logo_url,
                       signatureUrl: siteSettings.signature_url,
                       companyName: siteSettings.company_name,
+                      patternEnabled: siteSettings.certificate_pattern_enabled,
+                      patternUrl: siteSettings.certificate_pattern_url,
+                      patternOpacity: siteSettings.certificate_pattern_opacity,
                     }}
                   />
                 </div>

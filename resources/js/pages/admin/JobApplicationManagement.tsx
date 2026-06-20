@@ -43,6 +43,7 @@ import { Search, MoreHorizontal, Eye, Download, Trash2, LayoutGrid, List, Calend
 import { Application, ApplicationForm, ApplicationStatus, FormField, Department } from '@/types/database';
 import { format } from 'date-fns';
 import { getAssetUrl } from '@/lib/utils';
+import { generateMockApplication } from '@/lib/mockGenerator';
 
 const statusColors: Record<ApplicationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'secondary',
@@ -462,6 +463,29 @@ export default function JobApplicationManagement() {
     a.click();
   };
 
+  const handleGenerateAI = async () => {
+    if (selectedFormFilter === 'all') {
+      toast.error('Please select a specific job position from the filter first to generate a mock application.');
+      return;
+    }
+
+    const form = forms.find((f) => f.id === selectedFormFilter);
+    if (!form) {
+      toast.error('Selected job form not found.');
+      return;
+    }
+
+    const toastId = toast.loading(`Generating mock application for "${form.title}"...`);
+    try {
+      await generateMockApplication(form);
+      toast.success('Mock application generated successfully!', { id: toastId });
+      fetchApplications();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Failed to generate mock application.', { id: toastId });
+    }
+  };
+
   const getFilteredApplications = () => {
     const filtered = applications.filter((app) => {
       const matchesSearch =
@@ -546,6 +570,13 @@ export default function JobApplicationManagement() {
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export CSV
+            </Button>
+            <Button 
+              onClick={handleGenerateAI}
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm flex items-center"
+            >
+              <Sparkles className="h-4 w-4 mr-2 text-violet-100" />
+              Generate with AI
             </Button>
           </div>
         </div>

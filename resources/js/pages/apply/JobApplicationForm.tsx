@@ -92,6 +92,51 @@ export default function JobApplicationFormPage() {
 
     setForm(formData);
     setFields(fieldsData || []);
+
+    if (formData.seo_meta && typeof formData.seo_meta === 'object') {
+      const seo = formData.seo_meta as any;
+      if (seo.metaTitle) {
+        document.title = seo.metaTitle;
+      } else {
+        document.title = `${formData.title} | Job Application`;
+      }
+
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', seo.metaDescription || formData.description || '');
+
+      let metaKeywords = document.querySelector('meta[name="keywords"]');
+      if (!metaKeywords) {
+        metaKeywords = document.createElement('meta');
+        metaKeywords.setAttribute('name', 'keywords');
+        document.head.appendChild(metaKeywords);
+      }
+      metaKeywords.setAttribute('content', seo.metaKeywords || '');
+
+      // OpenGraph OG Tags
+      let ogTitle = document.querySelector('meta[property="og:title"]');
+      if (!ogTitle) {
+        ogTitle = document.createElement('meta');
+        ogTitle.setAttribute('property', 'og:title');
+        document.head.appendChild(ogTitle);
+      }
+      ogTitle.setAttribute('content', seo.metaTitle || formData.title);
+
+      let ogDesc = document.querySelector('meta[property="og:description"]');
+      if (!ogDesc) {
+        ogDesc = document.createElement('meta');
+        ogDesc.setAttribute('property', 'og:description');
+        document.head.appendChild(ogDesc);
+      }
+      ogDesc.setAttribute('content', seo.metaDescription || formData.description || '');
+    } else {
+      document.title = `${formData.title} | Job Application`;
+    }
+
     setLoading(false);
   };
 
@@ -198,6 +243,20 @@ export default function JobApplicationFormPage() {
         }
       }
 
+      let initialStatus = 'submitted';
+      if (form.auto_screening && typeof form.auto_screening === 'object') {
+        const rules = form.auto_screening as any;
+        if (rules.enabled) {
+          const threshold = Number(rules.minScore) || 0;
+          const currentScore = skillScore ?? 0;
+          if (currentScore >= threshold) {
+            initialStatus = rules.passStatus || 'shortlisted';
+          } else {
+            initialStatus = rules.failStatus || 'rejected';
+          }
+        }
+      }
+
       const { data: application, error: appError } = await supabase
         .from('applications')
         .insert({
@@ -208,6 +267,7 @@ export default function JobApplicationFormPage() {
           applicant_email: data.applicant_email,
           applicant_phone: data.applicant_phone || null,
           skill_score: skillScore,
+          status: initialStatus,
         })
         .select()
         .single();
@@ -269,6 +329,32 @@ export default function JobApplicationFormPage() {
         .from('applications')
         .update({ delivery_status: deliveryStatus })
         .eq('id', application.id);
+
+      // Auto-screening status transition notification
+      if (initialStatus !== 'submitted') {
+        try {
+          let templateKey = 'job_application_status_changed';
+          if (initialStatus === 'approved') templateKey = 'job_application_approved';
+          else if (initialStatus === 'rejected') templateKey = 'job_application_rejected';
+          else if (initialStatus === 'shortlisted') templateKey = 'job_application_shortlisted';
+          else if (initialStatus === 'reviewing') templateKey = 'job_application_reviewing';
+
+          await supabase.functions.invoke('send-notification', {
+            body: {
+              template_key: templateKey,
+              recipient_email: data.applicant_email,
+              recipient_phone: data.applicant_phone || null,
+              data: {
+                applicant_name: data.applicant_name,
+                form_title: form.title,
+                status: initialStatus,
+              },
+            },
+          });
+        } catch (statusNotifyErr) {
+          console.error('Failed to send status auto-screening notification:', statusNotifyErr);
+        }
+      }
 
       setSubmitted(true);
     } catch (error) {
@@ -523,7 +609,7 @@ export default function JobApplicationFormPage() {
               This job posting is not available or has been closed.
             </p>
             <Button asChild>
-              <Link to="/jobs">View Open Positions</Link>
+              <Link to="/">View Open Positions</Link>
             </Button>
           </CardContent>
         </Card>
@@ -540,7 +626,7 @@ export default function JobApplicationFormPage() {
               The deadline for this job posting has passed.
             </p>
             <Button asChild>
-              <Link to="/jobs">View Open Positions</Link>
+              <Link to="/">View Open Positions</Link>
             </Button>
           </CardContent>
         </Card>
@@ -568,7 +654,7 @@ export default function JobApplicationFormPage() {
               Thank you for applying. We will review your job application and get back to you soon.
             </p>
             <Button asChild>
-              <Link to="/jobs">View More Opportunities</Link>
+              <Link to="/">View More Opportunities</Link>
             </Button>
           </CardContent>
         </Card>
@@ -595,7 +681,7 @@ export default function JobApplicationFormPage() {
       >
         <div className="mx-auto max-w-2xl">
           <Link
-            to="/jobs"
+            to="/"
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -725,7 +811,7 @@ export default function JobApplicationFormPage() {
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <Link
-                    to="/jobs"
+                    to="/"
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-all"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -754,7 +840,7 @@ export default function JobApplicationFormPage() {
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           <Button variant="ghost" asChild className="mb-6">
-            <Link to="/jobs">
+            <Link to="/">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Opportunities
             </Link>

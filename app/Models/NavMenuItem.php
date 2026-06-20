@@ -9,7 +9,7 @@ class NavMenuItem extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['id', 'label', 'url', 'display_order', 'is_active', 'is_external'];
+    protected $fillable = ['id', 'label', 'icon', 'url', 'display_order', 'is_active', 'is_external'];
 
     protected $casts = [
         'is_active' => 'boolean',

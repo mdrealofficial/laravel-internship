@@ -18,13 +18,10 @@ export interface CertificateData {
   companyName?: string | null;
 }
 
-export type TemplateType = 'royal' | 'modern' | 'elegant' | 'gradient' | 'minimal' | 'minimalist';
+export type TemplateType = 'modern' | 'minimal' | 'minimalist';
 
 export const templateOptions = [
-  { id: 'royal' as TemplateType, name: 'Royal Gold', description: 'Classic and prestigious' },
   { id: 'modern' as TemplateType, name: 'Modern Tech', description: 'Contemporary dark theme' },
-  { id: 'elegant' as TemplateType, name: 'Elegant Cream', description: 'Sophisticated design' },
-  { id: 'gradient' as TemplateType, name: 'Gradient Wave', description: 'Bold and dynamic' },
   { id: 'minimal' as TemplateType, name: 'Minimal Clean', description: 'Simple and professional' },
   { id: 'minimalist' as TemplateType, name: 'Minimalist Sleek', description: 'Modern, asymmetrical layout with clean lines' },
 ];
@@ -35,9 +32,6 @@ interface Props {
 }
 
 export function CertificateTemplate({ data, template }: Props) {
-  if (template === 'royal') return <RoyalCert data={data} />;
-  if (template === 'elegant') return <ElegantCert data={data} />;
-  if (template === 'gradient') return <GradientCert data={data} />;
   if (template === 'minimal') return <MinimalCert data={data} />;
   if (template === 'minimalist') return <MinimalistSleekCert data={data} />;
   return <ModernCert data={data} />;
@@ -46,17 +40,16 @@ export function CertificateTemplate({ data, template }: Props) {
 function CompanyLogo({ url, className, fallbackText = 'D5', fallbackClass }: { url?: string | null; className?: string; fallbackText?: string; fallbackClass?: string }) {
   if (url) {
     return (
-      <div 
+      <img 
+        src={url} 
         className={className} 
         style={{ 
-          backgroundImage: `url(${url})`, 
-          backgroundSize: 'contain', 
-          backgroundPosition: 'center', 
-          backgroundRepeat: 'no-repeat',
+          objectFit: 'contain', 
           width: '100%',
-          height: '100%'
+          height: '100%',
+          display: 'block'
         }} 
-        aria-label="Company Logo"
+        alt="Company Logo"
       />
     );
   }
@@ -66,14 +59,14 @@ function CompanyLogo({ url, className, fallbackText = 'D5', fallbackClass }: { u
 function SignatureImage({ url }: { url?: string | null }) {
   if (url) {
     return (
-      <div 
+      <img 
+        src={url}
+        alt="Signature"
         style={{ 
-          backgroundImage: `url(${url})`, 
-          backgroundSize: 'contain', 
-          backgroundPosition: 'center', 
-          backgroundRepeat: 'no-repeat',
           height: '2rem',
-          width: '7rem',
+          width: 'auto',
+          maxWidth: '7rem',
+          objectFit: 'contain',
           display: 'inline-block'
         }} 
       />
@@ -82,64 +75,19 @@ function SignatureImage({ url }: { url?: string | null }) {
   return null;
 }
 
-function RoyalCert({ data }: { data: CertificateData }) {
-  return (
-    <div className="relative w-[960px] h-[540px] bg-gradient-to-br from-amber-50 via-white to-amber-50 p-2">
-      <div className="absolute inset-0 border-[12px] border-double border-amber-600/30" />
-      <div className="absolute inset-3 border-2 border-amber-500/40" />
-      <div className="absolute top-4 left-4 w-16 h-16 border-l-4 border-t-4 border-amber-600/50 rounded-tl-lg" />
-      <div className="absolute top-4 right-4 w-16 h-16 border-r-4 border-t-4 border-amber-600/50 rounded-tr-lg" />
-      <div className="absolute bottom-4 left-4 w-16 h-16 border-l-4 border-b-4 border-amber-600/50 rounded-bl-lg" />
-      <div className="absolute bottom-4 right-4 w-16 h-16 border-r-4 border-b-4 border-amber-600/50 rounded-br-lg" />
-      <div className="relative h-full flex flex-col items-center justify-center px-16 py-6">
-        <div style={{ display: 'flex', alignItems: 'center' }} className="gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
-            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-lg" />
-          </div>
-          <span className="font-serif text-2xl font-bold text-amber-800 tracking-wide">{data.companyName || 'DIGI5 LTD'}</span>
-        </div>
-        <div className="w-48 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent mb-3" />
-        <h1 className="font-serif text-3xl font-bold text-amber-900 tracking-widest mb-1">CERTIFICATE</h1>
-        <p className="text-amber-700 tracking-[0.3em] text-xs mb-4">OF COMPLETION</p>
-        <p className="text-amber-700 text-base mb-1">This is to certify that</p>
-        <h2 className="font-serif text-3xl font-bold text-amber-900 mb-2 text-center">{data.recipientName}</h2>
-        <div className="w-72 h-[1px] bg-gradient-to-r from-transparent via-amber-600 to-transparent mb-3" />
-        <p className="text-amber-700 text-center max-w-2xl mb-3 leading-relaxed text-sm">
-          has successfully completed the internship program as <span className="font-semibold text-amber-900">{data.roleTitle}</span> in the <span className="font-semibold text-amber-900">{data.departmentName}</span> department from {data.startDate} to {data.endDate}
-        </p>
-        <div className="flex items-end justify-between w-full mt-auto pt-4">
-          <div className="text-center">
-            <div className="w-28 border-t-2 border-amber-600/50 mb-1" />
-            <p className="text-xs text-amber-700">Date: {data.issuedDate}</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <QRCodeCanvas value={data.qrCodeUrl} size={50} level="M" fgColor="#92400e" bgColor="transparent" />
-            <p className="text-[9px] text-amber-600 mt-1 font-mono">{data.certificateId}</p>
-          </div>
-          <div className="text-center">
-            <SignatureImage url={data.signatureUrl} />
-            <div className="w-28 border-t-2 border-amber-600/50 mb-1" />
-            <p className="text-xs text-amber-700">Authorized Signature</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ModernCert({ data }: { data: CertificateData }) {
   return (
-    <div className="relative w-[960px] h-[540px] bg-slate-950 overflow-hidden">
+    <div style={{ fontFamily: "Inter, system-ui, -apple-system, sans-serif" }} className="relative w-[960px] h-[540px] bg-slate-950 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-cyan-600/20" />
       <div className="absolute top-0 right-0 w-80 h-80" style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%)' }} />
       <div className="absolute bottom-0 left-0 w-80 h-80" style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%)' }} />
       <div className="relative h-full flex flex-col items-center justify-center px-20 py-8">
         <div style={{ display: 'flex', alignItems: 'center' }} className="gap-4 mb-4">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl overflow-hidden flex-shrink-0">
+            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-base" />
           </div>
-          <div className="h-6 w-[1px] bg-white/20" />
-          <span className="text-white/80 font-light tracking-widest text-sm">{data.companyName || 'DIGI5 LTD'}</span>
+          <div className="h-8 w-[1px] bg-white/20" />
+          <span className="text-white font-semibold tracking-widest text-2xl">{data.companyName || 'DIGI5 LTD'}</span>
         </div>
         <h1 className="text-4xl font-extralight text-white tracking-[0.2em] mb-1">CERTIFICATE</h1>
         <p className="text-blue-400 tracking-[0.5em] text-xs mb-6">OF EXCELLENCE</p>
@@ -154,7 +102,7 @@ function ModernCert({ data }: { data: CertificateData }) {
           For completing the internship as <span className="text-blue-400 font-medium">{data.roleTitle}</span> in <span className="text-purple-400 font-medium">{data.departmentName}</span>
         </p>
         <p className="text-white/50 text-xs mt-2">{data.startDate} — {data.endDate}</p>
-        <div className="flex items-end justify-between w-full mt-auto pt-6">
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }} className="w-full mt-auto pt-6">
           <div className="text-center">
             <div className="text-white/40 text-xs mb-1">{data.issuedDate}</div>
             <div className="w-24 h-[1px] bg-gradient-to-r from-blue-500/50 to-transparent" />
@@ -177,137 +125,9 @@ function ModernCert({ data }: { data: CertificateData }) {
   );
 }
 
-function ElegantCert({ data }: { data: CertificateData }) {
-  return (
-    <div className="relative w-[960px] h-[540px] bg-gradient-to-b from-stone-100 to-stone-200">
-      <div className="absolute inset-5 border border-stone-400/30" />
-      <div className="absolute inset-7 border border-stone-400/20" />
-      <div className="relative h-full flex flex-col items-center justify-center px-20 py-8">
-        <div style={{ display: 'flex', alignItems: 'center' }} className="gap-6 mb-3">
-          <div className="w-20 h-[1px] bg-gradient-to-r from-transparent via-stone-500 to-transparent" />
-          <div className="w-9 h-9 border border-stone-400 rotate-45 flex items-center justify-center overflow-hidden flex-shrink-0">
-            {data.companyLogoUrl ? (
-              <div 
-                className="w-6 h-6 -rotate-45"
-                style={{ 
-                  backgroundImage: `url(${data.companyLogoUrl})`, 
-                  backgroundSize: 'contain', 
-                  backgroundPosition: 'center', 
-                  backgroundRepeat: 'no-repeat',
-                }}
-              />
-            ) : (
-              <div className="w-5 h-5 bg-stone-700 flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold -rotate-45">D5</span>
-              </div>
-            )}
-          </div>
-          <div className="w-20 h-[1px] bg-gradient-to-r from-transparent via-stone-500 to-transparent" />
-        </div>
-        <p className="text-stone-500 tracking-[0.4em] text-xs mb-1">{data.companyName || 'DIGI5 LTD'}</p>
-        <h1 className="font-serif text-4xl text-stone-800 tracking-wide mb-1">Certificate</h1>
-        <p className="text-stone-500 italic text-sm mb-5">of Internship Completion</p>
-        <p className="text-stone-600 text-sm mb-2 tracking-wide">This certifies that</p>
-        <h2 className="font-serif text-3xl text-stone-900 mb-2">{data.recipientName}</h2>
-        <div className="w-36 h-[1px] bg-stone-400 mb-4" />
-        <p className="text-stone-600 text-center max-w-xl leading-relaxed text-sm">
-          has demonstrated dedication as <span className="font-semibold text-stone-800">{data.roleTitle}</span> in the <span className="font-semibold text-stone-800">{data.departmentName}</span> department, from {data.startDate} to {data.endDate}.
-        </p>
-        <div className="flex items-end justify-between w-full mt-auto pt-4">
-          <div className="text-center">
-            <p className="text-stone-600 text-xs mb-2 italic">{data.issuedDate}</p>
-            <div className="w-28 border-t border-stone-400" />
-            <p className="text-stone-500 text-[10px] mt-1 tracking-wide">DATE</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="p-2 bg-white/50 rounded border border-stone-300">
-              <QRCodeCanvas value={data.qrCodeUrl} size={46} level="M" fgColor="#57534e" bgColor="transparent" />
-            </div>
-            <p className="text-stone-500 text-[8px] mt-1 font-mono">{data.certificateId}</p>
-          </div>
-          <div className="text-center">
-            <SignatureImage url={data.signatureUrl} />
-            <div className="w-28 border-t border-stone-400" />
-            <p className="text-stone-500 text-[10px] mt-1 tracking-wide">SIGNATURE</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GradientCert({ data }: { data: CertificateData }) {
-  return (
-    <div className="relative w-[960px] h-[540px] bg-white overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-40">
-        <svg viewBox="0 0 960 160" preserveAspectRatio="none" className="w-full h-full">
-          <defs>
-            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="50%" stopColor="#8b5cf6" />
-              <stop offset="100%" stopColor="#ec4899" />
-            </linearGradient>
-          </defs>
-          <path fill="url(#grad1)" d="M0,0 L960,0 L960,100 Q720,150 480,115 Q240,80 0,130 Z" opacity="0.9" />
-        </svg>
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 h-20 rotate-180">
-        <svg viewBox="0 0 960 80" preserveAspectRatio="none" className="w-full h-full">
-          <defs>
-            <linearGradient id="grad2" x1="100%" y1="0%" x2="0%" y2="0%">
-              <stop offset="0%" stopColor="#3b82f6" />
-              <stop offset="50%" stopColor="#8b5cf6" />
-              <stop offset="100%" stopColor="#ec4899" />
-            </linearGradient>
-          </defs>
-          <path fill="url(#grad2)" d="M0,0 L960,0 L960,50 Q720,80 480,55 Q240,30 0,70 Z" opacity="0.7" />
-        </svg>
-      </div>
-      <div className="relative h-full flex flex-col items-center justify-center px-20 py-8 z-10">
-        <div className="absolute top-5 left-0 right-0 flex justify-center">
-          <div style={{ display: 'flex', alignItems: 'center' }} className="gap-3">
-            <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-              <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
-            </div>
-            <span className="text-white font-medium tracking-wider text-sm">{data.companyName || 'DIGI5 LTD'}</span>
-          </div>
-        </div>
-        <div className="mt-6">
-          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 tracking-tight text-center">CERTIFICATE</h1>
-          <p className="text-center text-gray-500 tracking-[0.3em] text-xs mt-1">OF ACHIEVEMENT</p>
-        </div>
-        <p className="text-gray-600 text-sm mb-1 mt-4">Proudly presented to</p>
-        <h2 className="text-3xl font-bold text-gray-900 mb-3 text-center">{data.recipientName}</h2>
-        <p className="text-gray-600 text-center max-w-lg leading-relaxed text-sm">
-          For outstanding performance as <span className="font-semibold text-purple-600">{data.roleTitle}</span> in <span className="font-semibold text-blue-600">{data.departmentName}</span>
-        </p>
-        <p className="text-gray-400 text-xs mt-2">{data.startDate} → {data.endDate}</p>
-        <div className="flex items-end justify-between w-full mt-auto">
-          <div className="text-center">
-            <p className="text-gray-600 text-xs mb-1">{data.issuedDate}</p>
-            <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded" />
-            <p className="text-gray-400 text-[10px] mt-1">Issue Date</p>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="p-2 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
-              <QRCodeCanvas value={data.qrCodeUrl} size={50} level="M" fgColor="#7c3aed" bgColor="transparent" />
-            </div>
-            <p className="text-purple-500 text-[8px] mt-1 font-mono">{data.certificateId}</p>
-          </div>
-          <div className="text-center">
-            <SignatureImage url={data.signatureUrl} />
-            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded" />
-            <p className="text-gray-400 text-[10px] mt-1">Signature</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function MinimalCert({ data }: { data: CertificateData }) {
   return (
-    <div className="relative w-[960px] h-[540px] bg-white overflow-hidden">
+    <div style={{ fontFamily: "Inter, system-ui, -apple-system, sans-serif" }} className="relative w-[960px] h-[540px] bg-white overflow-hidden">
       {/* Optional Background Pattern */}
       {data.patternEnabled && data.patternUrl && (
         <div 
@@ -324,12 +144,12 @@ function MinimalCert({ data }: { data: CertificateData }) {
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200" />
       <div className="h-full flex flex-col items-center justify-center px-24 py-10">
         <div style={{ display: 'flex', alignItems: 'center' }} className="gap-4 mb-8">
-          <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
-            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="w-14 h-14 bg-slate-900 rounded overflow-hidden flex-shrink-0">
+            <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-base" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <p className="font-bold text-slate-900 text-lg leading-tight tracking-wider">{data.companyName || 'DIGI5 LTD'}</p>
-            <p className="text-slate-500 text-xs leading-none tracking-widest mt-1">INTERNSHIP PROGRAM</p>
+            <p className="font-bold text-slate-900 text-3xl leading-tight tracking-wider">{data.companyName || 'DIGI5 LTD'}</p>
+            <p className="text-slate-500 text-sm leading-none tracking-widest mt-2">INTERNSHIP PROGRAM</p>
           </div>
         </div>
         <h1 className="text-5xl font-extralight text-slate-900 tracking-widest mb-6">CERTIFICATE</h1>
@@ -339,7 +159,7 @@ function MinimalCert({ data }: { data: CertificateData }) {
           For completing the internship as <span className="font-medium">{data.roleTitle}</span> in the <span className="font-medium">{data.departmentName}</span> department.
         </p>
         <p className="text-slate-400 text-sm mt-2">{data.startDate} — {data.endDate}</p>
-        <div className="flex items-end justify-between w-full mt-auto pt-6">
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }} className="w-full mt-auto pt-6">
           <div className="text-left">
             <p className="text-slate-900 text-sm font-medium">{data.issuedDate}</p>
             <p className="text-slate-400 text-xs">Date of Issue</p>
@@ -361,7 +181,7 @@ function MinimalCert({ data }: { data: CertificateData }) {
 
 function MinimalistSleekCert({ data }: { data: CertificateData }) {
   return (
-    <div className="relative w-[960px] h-[540px] bg-white overflow-hidden border border-slate-200">
+    <div style={{ fontFamily: "Inter, system-ui, -apple-system, sans-serif", boxSizing: 'border-box' }} className="relative w-[960px] h-[540px] bg-white overflow-hidden border border-slate-200">
       {/* Optional Background Pattern */}
       {data.patternEnabled && data.patternUrl && (
         <div 
@@ -376,74 +196,107 @@ function MinimalistSleekCert({ data }: { data: CertificateData }) {
       )}
       
       {/* Grid container with 2 columns: left (620px), right (340px) */}
-      <div style={{ display: 'flex', flexDirection: 'row' }} className="h-full">
+      <div style={{ display: 'flex', flexDirection: 'row', position: 'relative', width: '960px', height: '100%', boxSizing: 'border-box' }}>
         {/* Left Column: Core content */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} className="w-[620px] h-full p-12 pr-8 text-left z-10">
-          {/* Logo and company info */}
-          <div style={{ display: 'flex', alignItems: 'center' }} className="gap-3.5">
-            <div className="w-9 h-9 bg-slate-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
-              <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
-            </div>
-            <div className="flex flex-col">
-              <p className="font-semibold text-slate-800 text-sm tracking-wider leading-none">{data.companyName || 'DIGI5 LTD'}</p>
-              <p className="text-slate-400 text-[10px] tracking-widest mt-1 leading-none uppercase">Internship Program</p>
-            </div>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'space-between', 
+          backgroundColor: '#ffffff',
+          width: '620px',
+          height: '100%',
+          padding: '48px 32px 48px 48px',
+          boxSizing: 'border-box',
+          textAlign: 'left'
+        }}>
+          {/* Company info */}
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <h3 style={{ margin: 0, padding: 0, fontSize: '28px', fontWeight: 700, color: '#0f172a', letterSpacing: '0.05em', lineHeight: '1.1' }}>
+              {data.companyName || 'DIGI5 LTD'}
+            </h3>
+            <p style={{ margin: 0, padding: 0, marginTop: '4px', fontSize: '11px', color: '#64748b', letterSpacing: '0.1em', lineHeight: '1', textTransform: 'uppercase' }}>
+              Internship Program
+            </p>
           </div>
 
           {/* Certificate Title & Recipient Details */}
-          <div className="my-auto py-6">
-            <h1 className="text-3xl font-light text-slate-900 tracking-[0.25em] mb-2 uppercase">Certificate of Completion</h1>
-            <div className="w-16 h-[2px] bg-slate-900 mb-6" />
+          <div style={{ margin: 'auto 0', padding: '24px 0' }}>
+            <h1 style={{ 
+              margin: 0, 
+              padding: 0, 
+              fontSize: '22px', 
+              fontWeight: 300, 
+              color: '#0f172a', 
+              letterSpacing: '0.18em', 
+              textTransform: 'uppercase',
+              lineHeight: '1.2'
+            }}>
+              Certificate of Completion
+            </h1>
+            <div style={{ width: '64px', height: '2px', backgroundColor: '#0f172a', marginTop: '12px', marginBottom: '24px' }} />
             
-            <p className="text-slate-400 text-xs tracking-wider uppercase mb-1.5">This is to certify that</p>
-            <h2 className="text-3xl font-semibold text-slate-900 tracking-wide mb-4">{data.recipientName}</h2>
+            <p style={{ margin: 0, padding: 0, fontSize: '11px', color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '6px' }}>
+              This is to certify that
+            </p>
+            <h2 style={{ margin: 0, padding: 0, fontSize: '28px', fontWeight: 600, color: '#0f172a', letterSpacing: '0.02em', marginBottom: '16px' }}>
+              {data.recipientName}
+            </h2>
             
-            <p className="text-slate-600 text-sm leading-relaxed max-w-xl">
-              has successfully fulfilled all requirements and completed the official internship program as a <span className="font-semibold text-slate-900">{data.roleTitle}</span> within the <span className="font-semibold text-slate-900">{data.departmentName}</span> department.
+            <p style={{ margin: 0, padding: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6', maxWidth: '520px' }}>
+              has successfully fulfilled all requirements and completed the official internship program as a <span style={{ fontWeight: 600, color: '#0f172a' }}>{data.roleTitle}</span> within the <span style={{ fontWeight: 600, color: '#0f172a' }}>{data.departmentName}</span> department.
             </p>
           </div>
 
           {/* Internship Timeline */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center' }} className="gap-6 text-xs text-slate-400">
-              <div>
-                <span className="block text-slate-300 font-medium uppercase tracking-wider text-[10px] mb-0.5">Start Date</span>
-                <span className="text-slate-700 font-medium">{data.startDate}</span>
-              </div>
-              <div className="h-6 w-[1px] bg-slate-200" />
-              <div>
-                <span className="block text-slate-300 font-medium uppercase tracking-wider text-[10px] mb-0.5">End Date</span>
-                <span className="text-slate-700 font-medium">{data.endDate}</span>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'row' }}>
+            <div>
+              <span style={{ display: 'block', color: '#cbd5e1', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '9px', marginBottom: '2px' }}>Start Date</span>
+              <span style={{ color: '#334155', fontWeight: 500, fontSize: '12px' }}>{data.startDate}</span>
+            </div>
+            <div style={{ height: '24px', width: '0px', borderLeft: '1px solid #e2e8f0', marginLeft: '24px', marginRight: '24px' }} />
+            <div>
+              <span style={{ display: 'block', color: '#cbd5e1', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '9px', marginBottom: '2px' }}>End Date</span>
+              <span style={{ color: '#334155', fontWeight: 500, fontSize: '12px' }}>{data.endDate}</span>
             </div>
           </div>
         </div>
 
         {/* Right Column: Verification & Signature */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} className="w-[340px] h-full bg-slate-50/50 border-l border-slate-100 p-12 text-left z-10">
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'space-between', 
+          backgroundColor: '#f8fafc',
+          width: '340px',
+          height: '100%',
+          borderLeft: '1px solid #f1f5f9',
+          padding: '48px',
+          boxSizing: 'border-box',
+          textAlign: 'left'
+        }}>
           {/* Top: QR verification */}
-          <div className="space-y-4">
-            <p className="text-slate-400 text-[9px] tracking-widest uppercase font-medium">Verify Authenticity</p>
-            <div className="inline-block p-3 bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-slate-100">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <p style={{ margin: 0, padding: 0, color: '#94a3b8', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>Verify Authenticity</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '88px', height: '88px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', marginTop: '16px' }}>
               <QRCodeCanvas value={data.qrCodeUrl} size={64} level="M" fgColor="#0f172a" bgColor="transparent" />
             </div>
-            <div>
-              <p className="text-[10px] text-slate-500 font-medium leading-none">Certificate ID</p>
-              <p className="text-[10px] text-slate-400 font-mono mt-1 leading-none">{data.certificateId}</p>
+            <div style={{ marginTop: '16px' }}>
+              <p style={{ margin: 0, padding: 0, fontSize: '10px', color: '#64748b', fontWeight: 500, lineHeight: '1.2' }}>Certificate ID</p>
+              <p style={{ margin: 0, padding: 0, fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace', marginTop: '4px', lineHeight: '1.2' }}>{data.certificateId}</p>
             </div>
           </div>
 
           {/* Bottom: Signature & Date */}
-          <div className="space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div>
               <SignatureImage url={data.signatureUrl} />
-              <div className="w-full border-b border-slate-300 mb-1.5" />
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Authorized Signature</p>
+              <div style={{ width: '100%', borderBottom: '1px solid #cbd5e1', marginTop: '8px', marginBottom: '6px' }} />
+              <p style={{ margin: 0, padding: 0, fontSize: '10px', color: '#64748b', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Authorized Signature</p>
             </div>
             
-            <div>
-              <p className="text-slate-800 text-sm font-semibold leading-none">{data.issuedDate}</p>
-              <p className="text-[10px] text-slate-400 tracking-wider uppercase mt-1 leading-none">Date of Issue</p>
+            <div style={{ marginTop: '24px' }}>
+              <p style={{ margin: 0, padding: 0, color: '#1e293b', fontSize: '14px', fontWeight: 600, lineHeight: '1.2' }}>{data.issuedDate}</p>
+              <p style={{ margin: 0, padding: 0, fontSize: '10px', color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '4px', lineHeight: '1.2' }}>Date of Issue</p>
             </div>
           </div>
         </div>

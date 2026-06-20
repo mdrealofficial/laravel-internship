@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Verify from "./pages/Verify";
+import Home from "./pages/Home";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import InternManagement from "./pages/admin/InternManagement";
 import BatchMessaging from "./pages/admin/BatchMessaging";
@@ -24,14 +25,12 @@ import InternCertificate from "./pages/intern/InternCertificate";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffAssessments from "./pages/staff/StaffAssessments";
 import StaffSettings from "./pages/staff/StaffSettings";
-import ApplicationList from "./pages/apply/ApplicationList";
 import ApplicationForm from "./pages/apply/ApplicationForm";
 import ApplicationStatusCheck from "./pages/apply/ApplicationStatusCheck";
 import JobFormManagement from "./pages/admin/JobFormManagement";
 import JobFormBuilder from "./pages/admin/JobFormBuilder";
 import JobApplicationManagement from "./pages/admin/JobApplicationManagement";
 import JobBatchMessaging from "./pages/admin/JobBatchMessaging";
-import JobApplicationList from "./pages/apply/JobApplicationList";
 import JobApplicationForm from "./pages/apply/JobApplicationForm";
 import NotificationReports from "./pages/admin/NotificationReports";
 import NotificationLogs from "./pages/admin/NotificationLogs";
@@ -49,16 +48,16 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Verify />} />
+            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Auth />} />
             <Route path="/auth" element={<Navigate to="/login" replace />} />
-            <Route path="/verify" element={<Navigate to="/" replace />} />
+            <Route path="/verify" element={<Verify />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             
             {/* Public Application Routes */}
-            <Route path="/apply" element={<ApplicationList />} />
+            <Route path="/apply" element={<Navigate to="/" replace />} />
+            <Route path="/jobs" element={<Navigate to="/" replace />} />
             <Route path="/apply/:slug" element={<ApplicationForm />} />
-            <Route path="/jobs" element={<JobApplicationList />} />
             <Route path="/apply/job/:slug" element={<JobApplicationForm />} />
             <Route path="/status" element={<ApplicationStatusCheck />} />
             

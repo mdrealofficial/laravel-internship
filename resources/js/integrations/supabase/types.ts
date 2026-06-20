@@ -424,6 +424,7 @@ export type Database = {
           created_at: string | null
           display_order: number | null
           id: string
+          icon: string | null
           is_active: boolean | null
           is_external: boolean | null
           label: string
@@ -434,6 +435,7 @@ export type Database = {
           created_at?: string | null
           display_order?: number | null
           id?: string
+          icon?: string | null
           is_active?: boolean | null
           is_external?: boolean | null
           label: string
@@ -444,6 +446,7 @@ export type Database = {
           created_at?: string | null
           display_order?: number | null
           id?: string
+          icon?: string | null
           is_active?: boolean | null
           is_external?: boolean | null
           label?: string

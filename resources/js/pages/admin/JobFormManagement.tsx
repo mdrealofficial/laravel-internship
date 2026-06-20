@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2, Copy, Users, Loader2 } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2, Copy, Users, Loader2, Share2, QrCode, Check, Sparkles } from 'lucide-react';
+import { generateMockApplication } from '@/lib/mockGenerator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { ApplicationForm } from '@/types/database';
 import { format } from 'date-fns';
 
@@ -42,6 +51,11 @@ export default function JobFormManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Share Dialog states
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [selectedForm, setSelectedForm] = useState<ApplicationForm | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchForms();
@@ -113,6 +127,8 @@ export default function JobFormManagement() {
         deadline: form.deadline,
         salary_range: form.salary_range,
         facilities: form.facilities,
+        auto_screening: form.auto_screening,
+        seo_meta: form.seo_meta,
       })
       .select()
       .single();
@@ -140,6 +156,18 @@ export default function JobFormManagement() {
 
     toast.success('Job form duplicated');
     fetchForms();
+  };
+
+  const handleGenerateAIApplication = async (form: ApplicationForm) => {
+    const toastId = toast.loading(`Generating mock application for "${form.title}"...`);
+    try {
+      await generateMockApplication(form);
+      toast.success('Mock application generated successfully!', { id: toastId });
+      fetchForms();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Failed to generate mock application.', { id: toastId });
+    }
   };
 
   const filteredForms = forms.filter(
@@ -237,6 +265,13 @@ export default function JobFormManagement() {
                             <Eye className="h-4 w-4 mr-2" />
                             Preview
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedForm(form);
+                            setShareDialogOpen(true);
+                          }}>
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Share & QR
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
                               navigate(`/admin/job-applications?form=${form.id}`)
@@ -248,6 +283,10 @@ export default function JobFormManagement() {
                           <DropdownMenuItem onClick={() => handleDuplicate(form)}>
                             <Copy className="h-4 w-4 mr-2" />
                             Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleGenerateAIApplication(form)}>
+                            <Sparkles className="h-4 w-4 mr-2 text-primary animate-pulse" />
+                            Generate AI Application
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleToggleActive(form)}>
                             {form.is_active ? 'Deactivate' : 'Activate'}
@@ -297,6 +336,92 @@ export default function JobFormManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Share Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-primary" />
+              Share Job Post
+            </DialogTitle>
+            <DialogDescription>
+              Anyone with this link can view the details and apply for this job.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedForm && (
+            <div className="space-y-6 py-4 flex flex-col items-center">
+              {/* QR Code Container */}
+              <div className="border border-slate-100 dark:border-zinc-800 p-4 rounded-2xl bg-white flex flex-col items-center gap-3 shadow-md hover:shadow-lg transition-shadow">
+                <img
+                  src={`https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(
+                    `${window.location.origin}/apply/job/${selectedForm.slug}`
+                  )}`}
+                  alt="Job Apply QR Code"
+                  className="w-[180px] h-[180px] object-contain rounded-lg"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(
+                      `${window.location.origin}/apply/job/${selectedForm.slug}`
+                    )}`;
+                    try {
+                      const response = await fetch(qrUrl);
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `qr-${selectedForm.slug}.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      window.URL.revokeObjectURL(url);
+                    } catch (e) {
+                      window.open(qrUrl, '_blank');
+                    }
+                  }}
+                  className="h-8 text-[11px] flex items-center gap-1 border-slate-200 dark:border-zinc-800 hover:bg-accent/40"
+                >
+                  <QrCode className="h-3 w-3" />
+                  Download QR Code
+                </Button>
+              </div>
+
+              {/* Link Input & Copy */}
+              <div className="flex items-center gap-2 w-full">
+                <Input
+                  value={`${window.location.origin}/apply/job/${selectedForm.slug}`}
+                  readOnly
+                  className="flex-1 h-9 text-xs border-slate-200 dark:border-zinc-800 bg-muted/30"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/apply/job/${selectedForm.slug}`
+                    );
+                    setCopied(true);
+                    toast.success('Share link copied to clipboard!');
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="h-9 w-9 border border-slate-200 dark:border-zinc-800 bg-background hover:bg-accent/60"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="sm:justify-end">
+            <Button type="button" onClick={() => setShareDialogOpen(false)} className="text-xs h-9 bg-primary text-white">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

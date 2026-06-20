@@ -15,6 +15,9 @@ interface SiteSettings {
   signature_url: string | null;
   company_name?: string | null;
   certificate_download_format?: 'pdf' | 'png' | 'jpeg';
+  certificate_pattern_enabled?: boolean;
+  certificate_pattern_url?: string | null;
+  certificate_pattern_opacity?: number;
 }
 
 const InternCertificate = () => {
@@ -42,12 +45,15 @@ const InternCertificate = () => {
 
       // Map site settings
       const settings = settingsRes.data || [];
-      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null, company_name: 'DIGI5 LTD', certificate_download_format: 'pdf' };
+      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null, company_name: 'DIGI5 LTD', certificate_download_format: 'pdf', certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5 };
       settings.forEach(s => {
         if (s.setting_key === 'company_logo_url') settingsMap.company_logo_url = s.setting_value;
         if (s.setting_key === 'signature_url') settingsMap.signature_url = s.setting_value;
         if (s.setting_key === 'company_name') settingsMap.company_name = s.setting_value;
         if (s.setting_key === 'certificate_download_format') settingsMap.certificate_download_format = (s.setting_value as 'pdf' | 'png' | 'jpeg') || 'pdf';
+        if (s.setting_key === 'certificate_pattern_enabled') settingsMap.certificate_pattern_enabled = s.setting_value === 'true';
+        if (s.setting_key === 'certificate_pattern_url') settingsMap.certificate_pattern_url = s.setting_value;
+        if (s.setting_key === 'certificate_pattern_opacity') settingsMap.certificate_pattern_opacity = parseInt(s.setting_value || '5', 10);
       });
       setSiteSettings(settingsMap);
 
@@ -169,7 +175,7 @@ const InternCertificate = () => {
           <CardContent className="pt-6">
             <div ref={certificateRef} className="inline-block">
               <CertificateTemplate
-                template={(data.certificate.template_type as TemplateType) || 'royal'}
+                template={(data.certificate.template_type as TemplateType) || 'modern'}
                 data={{
                   recipientName: data.intern.profiles?.full_name || 'Unknown',
                   roleTitle: data.intern.role_title || 'Intern',
@@ -182,6 +188,9 @@ const InternCertificate = () => {
                   companyLogoUrl: siteSettings.company_logo_url,
                   signatureUrl: siteSettings.signature_url,
                   companyName: siteSettings.company_name,
+                  patternEnabled: siteSettings.certificate_pattern_enabled,
+                  patternUrl: siteSettings.certificate_pattern_url,
+                  patternOpacity: siteSettings.certificate_pattern_opacity,
                 }}
               />
             </div>

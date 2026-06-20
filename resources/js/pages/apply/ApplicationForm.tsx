@@ -531,7 +531,7 @@ export default function ApplicationFormPage() {
               This application form is not available or has been closed.
             </p>
             <Button asChild>
-              <Link to="/apply">View Open Positions</Link>
+              <Link to="/">View Open Positions</Link>
             </Button>
           </CardContent>
         </Card>
@@ -548,7 +548,7 @@ export default function ApplicationFormPage() {
               The deadline for this application has passed.
             </p>
             <Button asChild>
-              <Link to="/apply">View Open Positions</Link>
+              <Link to="/">View Open Positions</Link>
             </Button>
           </CardContent>
         </Card>
@@ -576,7 +576,7 @@ export default function ApplicationFormPage() {
               Thank you for applying. We will review your application and get back to you soon.
             </p>
             <Button asChild>
-              <Link to="/apply">View More Opportunities</Link>
+              <Link to="/">View More Opportunities</Link>
             </Button>
           </CardContent>
         </Card>
@@ -606,7 +606,7 @@ export default function ApplicationFormPage() {
         <div className="mx-auto max-w-2xl">
           {/* Back link */}
           <Link
-            to="/apply"
+            to="/"
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -770,7 +770,7 @@ export default function ApplicationFormPage() {
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <Link
-                    to="/apply"
+                    to="/"
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900 transition-all"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -799,7 +799,7 @@ export default function ApplicationFormPage() {
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
           <Button variant="ghost" asChild className="mb-6">
-            <Link to="/apply">
+            <Link to="/">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Opportunities
             </Link>

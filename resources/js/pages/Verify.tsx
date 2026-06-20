@@ -13,6 +13,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import SkillsDisplay from '@/components/verify/SkillsDisplay';
 import { getAssetUrl } from '@/lib/utils';
+import { PublicNavbar } from '@/components/layout/PublicNavbar';
 
 interface SkillAssessment {
   id: string;
@@ -39,7 +40,6 @@ const Verify = () => {
   const [showCertificate, setShowCertificate] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [skillAssessments, setSkillAssessments] = useState<SkillAssessment[]>([]);
-  const [navMenuItems, setNavMenuItems] = useState<NavMenuItem[]>([]);
   const [siteSettings, setSiteSettings] = useState<{ 
     company_logo_url: string | null; 
     signature_url: string | null;
@@ -48,31 +48,34 @@ const Verify = () => {
     certificate_pattern_opacity: number;
     company_name: string | null;
     certificate_download_format?: 'pdf' | 'png' | 'jpeg';
-  }>({ company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5, company_name: 'DIGI5 LTD', certificate_download_format: 'pdf' });
+  }>(() => {
+    const globalSettings = (window as any).__SITE_SETTINGS__ || {};
+    return {
+      company_logo_url: globalSettings.companyLogoUrl || null,
+      signature_url: null,
+      certificate_pattern_enabled: false,
+      certificate_pattern_url: null,
+      certificate_pattern_opacity: 5,
+      company_name: globalSettings.companyName || 'DIGI5 LTD',
+      certificate_download_format: 'pdf'
+    };
+  });
   const certificateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchSiteSettings();
-    fetchNavMenuItems();
   }, []);
 
   // Auto-verify when id param is present - runs on mount and when URL changes
   useEffect(() => {
     const idParam = searchParams.get('id');
-    if (idParam && idParam !== certId) {
+    if (idParam) {
       setCertId(idParam);
       verifyCertificate(idParam);
     }
   }, [searchParams.get('id')]);
 
-  const fetchNavMenuItems = async () => {
-    const { data } = await supabase
-      .from('nav_menu_items')
-      .select('id, label, url, is_external')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
-    if (data) setNavMenuItems(data);
-  };
+
 
   const fetchSiteSettings = async () => {
     const { data: settings } = await supabase.from('site_settings').select('setting_key, setting_value');
@@ -259,77 +262,55 @@ const Verify = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="w-full px-8 lg:px-12 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            {logoUrl && (
-              <img src={getAssetUrl(logoUrl)} alt="Company Logo" className="h-10 w-auto object-contain" />
-            )}
-          </Link>
-          <nav className="flex items-center gap-4">
-            {navMenuItems.map((item) => (
-              <a
-                key={item.id}
-                href={item.url}
-                target={item.is_external ? '_blank' : undefined}
-                rel={item.is_external ? 'noopener noreferrer' : undefined}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </header>
+      <PublicNavbar />
 
       {/* Main Content - Left to Right Layout */}
-      <main className="flex-1 flex flex-col lg:flex-row">
-        {/* Left Panel - Search */}
-        <aside className="lg:w-2/5 p-8 lg:p-12 bg-gradient-to-br from-primary/5 via-background to-muted/20 flex flex-col justify-center border-r border-border/50">
-          <div className="max-w-md mx-auto lg:mx-0">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl mb-6">
-              <Shield className="h-8 w-8 text-primary" />
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-12 flex flex-col lg:flex-row gap-8 items-start">
+        {/* Left Panel - Search Card */}
+        <aside className="w-full lg:w-[380px] xl:w-[420px] p-6 sm:p-8 bg-gradient-to-br from-primary/5 via-background to-muted/20 rounded-2xl border border-border/50 flex flex-col shrink-0 shadow-sm animate-fade-in">
+          <div className="w-full">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-6">
+              <Shield className="h-6 w-6 text-primary" />
             </div>
             
-            <h1 className="text-3xl lg:text-4xl font-bold mb-3">Verify Certificate</h1>
-            <p className="text-muted-foreground mb-8">
+            <h1 className="text-2xl font-bold mb-2">Verify Certificate</h1>
+            <p className="text-muted-foreground text-sm mb-6">
               Enter a certificate ID to verify its authenticity
             </p>
 
             {/* Search Form */}
-            <form onSubmit={handleSubmit} className="space-y-4 mb-8">
+            <form onSubmit={handleSubmit} className="space-y-4 mb-6">
               <div className="relative">
                 <Award className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input 
                   placeholder="Certificate ID (e.g., DIGI5-XXX-XXX)" 
                   value={certId} 
                   onChange={(e) => setCertId(e.target.value)} 
-                  className="pl-12 h-14 text-lg bg-background border-2 focus:border-primary"
+                  className="pl-12 h-12 bg-background border border-input focus:border-primary"
                 />
               </div>
-              <Button type="submit" disabled={loading} size="lg" className="w-full h-12">
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Search className="h-5 w-5 mr-2" /> Verify Certificate</>}
+              <Button type="submit" disabled={loading} size="lg" className="w-full h-11">
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Search className="h-4 w-4 mr-2" /> Verify</>}
               </Button>
             </form>
 
             {/* Features List */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Shield className="h-4 w-4 text-primary" />
+            <div className="space-y-4 pt-4 border-t border-border/50">
+              <div className="flex items-center gap-3 text-xs">
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <span className="text-muted-foreground">Cryptographically secured & tamper-proof</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Award className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-3 text-xs">
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Award className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <span className="text-muted-foreground">Official {siteSettings.company_name || 'DIGI5 LTD'} recognition</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Zap className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-3 text-xs">
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <span className="text-muted-foreground">Instant verification results</span>
               </div>
@@ -338,7 +319,7 @@ const Verify = () => {
         </aside>
 
         {/* Right Panel - Results */}
-        <section className="lg:w-3/5 p-8 lg:p-12 flex items-center justify-center bg-muted/10">
+        <section className="flex-1 w-full min-h-[400px] flex items-center justify-center bg-muted/5 rounded-2xl border border-border/30 p-6 sm:p-8">
           <div className="w-full max-w-xl">
             {loading ? (
               <Card className="shadow-lg">
@@ -469,7 +450,7 @@ const Verify = () => {
             >
               {result && (
                 <CertificateTemplate
-                  template={(result.template_type as TemplateType) || 'royal'}
+                  template={(result.template_type as TemplateType) || 'modern'}
                   data={{
                     recipientName: result.interns?.profiles?.full_name || 'Unknown',
                     roleTitle: result.interns?.role_title || 'Intern',

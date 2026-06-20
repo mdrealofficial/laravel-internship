@@ -6,10 +6,21 @@
     $faviconUrl = \Illuminate\Support\Facades\DB::table('site_settings')
         ->where('setting_key', 'favicon_url')
         ->value('setting_value') ?? '/favicon.svg';
+
+    $companyLogoUrl = \Illuminate\Support\Facades\DB::table('site_settings')
+        ->where('setting_key', 'company_logo_url')
+        ->value('setting_value');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        window.__SITE_SETTINGS__ = {
+            companyName: @json($companyName),
+            companyLogoUrl: @json($companyLogoUrl),
+            faviconUrl: @json($faviconUrl)
+        };
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ $companyName }} - Certificate Verification</title>
