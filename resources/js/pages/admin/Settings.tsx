@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { User, Lock, Image, Upload, Loader2, Save, Trash2, Layers, Check, Mail, MessageSquare, FileText, Menu, Award, Brain, Download } from 'lucide-react';
+import { User, Lock, Image, Upload, Loader2, Save, Trash2, Layers, Check, Mail, MessageSquare, FileText, Menu, Award, Brain, Download, UploadCloud, RefreshCw, AlertCircle, Terminal } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { templateOptions, TemplateType } from '@/components/certificates/CertificateTemplate';
 import { Slider } from '@/components/ui/slider';
@@ -152,6 +154,214 @@ const Settings = () => {
   const [geminiApiKey, setGeminiApiKey] = useState<string | null>('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [savingApiKey, setSavingApiKey] = useState(false);
+
+  // System Reset States
+  const [resetCandidates, setResetCandidates] = useState(false);
+  const [resetCertificates, setResetCertificates] = useState(false);
+  const [resetInterns, setResetInterns] = useState(false);
+  const [resetForms, setResetForms] = useState(false);
+  const [resetDepartments, setResetDepartments] = useState(false);
+  const [resetMenus, setResetMenus] = useState(false);
+  const [resetLogs, setResetLogs] = useState(false);
+  const [resetBranding, setResetBranding] = useState(false);
+
+  const [confirmText, setConfirmText] = useState('');
+  const [resetting, setResetting] = useState(false);
+
+  // System Update States
+  const [updateFile, setUpdateFile] = useState<File | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'uploading' | 'updating' | 'success' | 'error'>('idle');
+  const [updateProgressMsg, setUpdateProgressMsg] = useState('');
+  const [updateLog, setUpdateLog] = useState('');
+  const [updateError, setUpdateError] = useState('');
+  const [confirmUpdateCheckbox, setConfirmUpdateCheckbox] = useState(false);
+
+  const handleResetAction = async () => {
+    if (confirmText !== 'RESET') {
+      toast({ title: 'Validation Error', description: 'Please type RESET to confirm.', variant: 'destructive' });
+      return;
+    }
+
+    setResetting(true);
+    try {
+      // 1. Candidate responses & applications
+      if (resetCandidates) {
+        // Delete responses first
+        const { error: err1 } = await supabase.from('application_responses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err1) throw err1;
+        // Delete applications
+        const { error: err2 } = await supabase.from('applications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err2) throw err2;
+      }
+
+      // 2. Issued Certificates
+      if (resetCertificates) {
+        const { error: err3 } = await supabase.from('certificates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err3) throw err3;
+      }
+
+      // 3. Interns
+      if (resetInterns) {
+        // Delete skill assessments first
+        const { error: err4 } = await supabase.from('intern_skill_assessments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err4) throw err4;
+        // Delete interns
+        const { error: err5 } = await supabase.from('interns').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err5) throw err5;
+      }
+
+      // 4. Forms and fields
+      if (resetForms) {
+        // Delete form fields first
+        const { error: err6 } = await supabase.from('form_fields').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err6) throw err6;
+        // Delete forms
+        const { error: err7 } = await supabase.from('application_forms').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err7) throw err7;
+      }
+
+      // 5. Departments and skills
+      if (resetDepartments) {
+        // Delete department skills first
+        const { error: err8 } = await supabase.from('department_skills').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err8) throw err8;
+        // Delete departments
+        const { error: err9 } = await supabase.from('departments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err9) throw err9;
+      }
+
+      // 6. Custom Navigation Menus
+      if (resetMenus) {
+        const { error: err10 } = await supabase.from('nav_menu_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err10) throw err10;
+        
+        // Re-insert defaults
+        const defaults = [
+          { label: 'Certificate Verification', icon: 'ShieldCheck', url: '/verify', display_order: 1, is_active: true, is_external: false },
+          { label: 'Job Status', icon: 'Award', url: '/status', display_order: 2, is_active: true, is_external: false }
+        ];
+        const { error: err10b } = await supabase.from('nav_menu_items').insert(defaults);
+        if (err10b) throw err10b;
+      }
+
+      // 7. Notification Logs
+      if (resetLogs) {
+        const { error: err11 } = await supabase.from('notification_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (err11) throw err11;
+      }
+
+      // 8. Site Settings & Branding
+      if (resetBranding && user) {
+        const defaultSettings = [
+          { setting_key: 'company_name', setting_value: 'DIGI5 LTD' },
+          { setting_key: 'company_logo_url', setting_value: null },
+          { setting_key: 'signature_url', setting_value: null },
+          { setting_key: 'favicon_url', setting_value: null },
+          { setting_key: 'certificate_pattern_url', setting_value: null },
+          { setting_key: 'certificate_pattern_enabled', setting_value: 'false' },
+          { setting_key: 'certificate_pattern_opacity', setting_value: '5' },
+          { setting_key: 'certificate_default_theme', setting_value: 'modern' },
+          { setting_key: 'certificate_download_format', setting_value: 'pdf' },
+          { setting_key: 'footer_title', setting_value: '' },
+          { setting_key: 'footer_subtitle', setting_value: '' },
+          { setting_key: 'footer_address', setting_value: '' },
+          { setting_key: 'footer_copyright', setting_value: '' }
+        ];
+
+        const promises = defaultSettings.map(s => 
+          supabase
+            .from('site_settings')
+            .upsert({ 
+              setting_key: s.setting_key, 
+              setting_value: s.setting_value,
+              updated_at: new Date().toISOString(),
+              updated_by: user.id 
+            }, { onConflict: 'setting_key' })
+        );
+
+        const results = await Promise.all(promises);
+        const errResult = results.find(r => r.error);
+        if (errResult) throw errResult.error;
+      }
+
+      toast({ title: 'Success', description: 'Selected system data reset successfully!' });
+      setConfirmText('');
+      // Uncheck all
+      setResetCandidates(false);
+      setResetCertificates(false);
+      setResetInterns(false);
+      setResetForms(false);
+      setResetDepartments(false);
+      setResetMenus(false);
+      setResetLogs(false);
+      setResetBranding(false);
+      
+      // Fetch data again to refresh state
+      fetchData();
+    } catch (error: any) {
+      console.error(error);
+      toast({ title: 'Reset Failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleSystemUpdate = async () => {
+    if (!updateFile) {
+      toast({ title: 'Error', description: 'Please select a ZIP file first.', variant: 'destructive' });
+      return;
+    }
+    if (!confirmUpdateCheckbox) {
+      toast({ title: 'Error', description: 'Please confirm that you understand the risks.', variant: 'destructive' });
+      return;
+    }
+
+    setUpdateStatus('uploading');
+    setUpdateProgressMsg('Uploading ZIP archive to server...');
+    setUpdateError('');
+    setUpdateLog('');
+
+    const formData = new FormData();
+    formData.append('file', updateFile);
+
+    try {
+      const response = await axios.post('/api/supabase-compat/system/update', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+          setUpdateProgressMsg(`Uploading ZIP archive: ${percentCompleted}%`);
+          if (percentCompleted === 100) {
+            setUpdateStatus('updating');
+            setUpdateProgressMsg('Extracting codebase and applying updates. Please do not close this window...');
+          }
+        }
+      });
+
+      if (response.data.success) {
+        setUpdateStatus('success');
+        setUpdateProgressMsg('System successfully updated!');
+        
+        let statsMsg = `Files Overwritten: ${response.data.stats?.copied_files || 0}\n`;
+        statsMsg += `Directories Added: ${response.data.stats?.copied_dirs || 0}\n\n`;
+        statsMsg += `=== Database Migration Output ===\n${response.data.migration_output || 'No migrations run.'}\n\n`;
+        statsMsg += `=== Cache Clearing Output ===\n${response.data.cache_output || 'No caches cleared.'}`;
+        
+        setUpdateLog(statsMsg);
+        toast({ title: 'Success', description: 'System updated successfully!' });
+      } else {
+        throw new Error(response.data.error || 'Failed to update system');
+      }
+    } catch (error: any) {
+      console.error('System update failed:', error);
+      const errMsg = error.response?.data?.error || error.message || 'An unexpected error occurred during the update.';
+      setUpdateStatus('error');
+      setUpdateProgressMsg('System update failed.');
+      setUpdateError(errMsg);
+      toast({ title: 'Update Failed', description: errMsg, variant: 'destructive' });
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -711,7 +921,7 @@ const Settings = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 h-auto p-1">
             <TabsTrigger value="profile" className="flex items-center gap-2 py-2.5">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile & Security</span>
@@ -735,6 +945,10 @@ const Settings = () => {
             <TabsTrigger value="navigation" className="flex items-center gap-2 py-2.5">
               <Menu className="h-4 w-4" />
               <span className="hidden sm:inline">Navigation</span>
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className="flex items-center gap-2 py-2.5 text-rose-600 dark:text-rose-400 hover:text-rose-700">
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">System Reset</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1474,6 +1688,311 @@ const Settings = () => {
           {/* Navigation Tab */}
           <TabsContent value="navigation" className="max-w-4xl">
             <NavMenuManager />
+          </TabsContent>
+
+          {/* System Reset / Maintenance Tab */}
+          <TabsContent value="maintenance" className="max-w-4xl space-y-6">
+            <Card className="border-rose-100 dark:border-rose-950 bg-rose-50/10 dark:bg-rose-950/10">
+              <CardHeader>
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                  <Trash2 className="h-5 w-5" />
+                  <CardTitle>System Reset & Data Purge</CardTitle>
+                </div>
+                <CardDescription className="text-rose-600/80 dark:text-rose-400/80">
+                  Selectively purge database records to prepare the system for a new company installation. Warning: This action is permanent and cannot be undone.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-foreground">Select Data Categories to Reset</h4>
+                  
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-candidates"
+                        checked={resetCandidates}
+                        onCheckedChange={(checked) => setResetCandidates(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-candidates" className="font-medium cursor-pointer">Candidate Applications</Label>
+                        <p className="text-xs text-muted-foreground">Purges all submitted applications & custom form answers.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-certificates"
+                        checked={resetCertificates}
+                        onCheckedChange={(checked) => setResetCertificates(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-certificates" className="font-medium cursor-pointer">Issued Certificates</Label>
+                        <p className="text-xs text-muted-foreground">Deletes all generated internship/job credentials.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-interns"
+                        checked={resetInterns}
+                        onCheckedChange={(checked) => setResetInterns(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-interns" className="font-medium cursor-pointer">Intern Profiles</Label>
+                        <p className="text-xs text-muted-foreground">Removes active interns and their skill ratings.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-forms"
+                        checked={resetForms}
+                        onCheckedChange={(checked) => setResetForms(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-forms" className="font-medium cursor-pointer">Hiring Forms & Fields</Label>
+                        <p className="text-xs text-muted-foreground">Removes all custom application forms and form structure.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-departments"
+                        checked={resetDepartments}
+                        onCheckedChange={(checked) => setResetDepartments(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-departments" className="font-medium cursor-pointer">Departments & Skills</Label>
+                        <p className="text-xs text-muted-foreground">Deletes departments and core competency skill lists.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-menus"
+                        checked={resetMenus}
+                        onCheckedChange={(checked) => setResetMenus(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-menus" className="font-medium cursor-pointer">Navigation Menus</Label>
+                        <p className="text-xs text-muted-foreground">Deletes custom navigation links and restores default public links.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-logs"
+                        checked={resetLogs}
+                        onCheckedChange={(checked) => setResetLogs(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-logs" className="font-medium cursor-pointer">Notification Logs</Label>
+                        <p className="text-xs text-muted-foreground">Purges audit trail logs of all outgoing email/SMS notifications.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                      <Checkbox
+                        id="reset-branding"
+                        checked={resetBranding}
+                        onCheckedChange={(checked) => setResetBranding(!!checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="reset-branding" className="font-medium cursor-pointer">Branding & Site Settings</Label>
+                        <p className="text-xs text-muted-foreground">Resets company name, logos, patterns, and formats back to defaults.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4 rounded-lg bg-rose-500/10 p-4 border border-rose-500/20">
+                  <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-semibold text-sm">
+                    <Lock className="h-4 w-4" />
+                    Double-Confirmation Required
+                  </div>
+                  <p className="text-xs text-rose-700/80 dark:text-rose-300/80">
+                    To execute this operation, you must select at least one data category above and type the word <strong className="font-bold text-rose-600 dark:text-rose-400">RESET</strong> below to confirm.
+                  </p>
+                  
+                  <div className="max-w-xs space-y-2">
+                    <Label htmlFor="confirm-reset-text" className="text-xs text-muted-foreground">Confirmation Keyword</Label>
+                    <Input
+                      id="confirm-reset-text"
+                      placeholder="Type RESET"
+                      value={confirmText}
+                      onChange={(e) => setConfirmText(e.target.value)}
+                      className="border-rose-200 dark:border-rose-900 focus-visible:ring-rose-500 text-rose-700 dark:text-rose-300 font-mono tracking-widest text-center"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    variant="destructive"
+                    disabled={
+                      resetting ||
+                      confirmText !== 'RESET' ||
+                      (!resetCandidates &&
+                        !resetCertificates &&
+                        !resetInterns &&
+                        !resetForms &&
+                        !resetDepartments &&
+                        !resetMenus &&
+                        !resetLogs &&
+                        !resetBranding)
+                    }
+                    onClick={handleResetAction}
+                    className="w-full sm:w-auto shadow-sm flex items-center justify-center gap-2"
+                  >
+                    {resetting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                    Purge Selected Data
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* System Update Card */}
+            <Card className="border-indigo-100 dark:border-indigo-950 bg-indigo-50/5 dark:bg-indigo-950/5">
+              <CardHeader>
+                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                  <UploadCloud className="h-5 w-5" />
+                  <CardTitle>System Codebase Update</CardTitle>
+                </div>
+                <CardDescription className="text-indigo-600/80 dark:text-indigo-400/80">
+                  Upload a ZIP archive containing the updated system files. This will extract the ZIP, overwrite codebase files (such as controllers, routes, views, styles, and assets), run database migrations, and clear Laravel caches.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="rounded-lg border-2 border-dashed border-indigo-200 dark:border-indigo-900 p-6 text-center hover:bg-indigo-50/10 dark:hover:bg-indigo-950/10 transition-colors">
+                    <input
+                      type="file"
+                      id="system-zip-upload"
+                      accept=".zip"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUpdateFile(file);
+                          setUpdateStatus('idle');
+                          setUpdateError('');
+                          setUpdateLog('');
+                        }
+                      }}
+                      disabled={updateStatus === 'uploading' || updateStatus === 'updating'}
+                    />
+                    <label htmlFor="system-zip-upload" className="cursor-pointer flex flex-col items-center justify-center space-y-2">
+                      <UploadCloud className="h-10 w-10 text-indigo-500 animate-bounce" />
+                      <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                        {updateFile ? updateFile.name : 'Select or drop system update ZIP file'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {updateFile ? `(${Math.round(updateFile.size / 1024 / 1024 * 100) / 100} MB)` : 'Accepts only .zip files'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="rounded-md bg-amber-500/10 p-4 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs space-y-2">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4" />
+                      Important Technical Notes:
+                    </p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li>The configuration file (<code>.env</code>) and uploaded assets (<code>storage/app/public/</code>) will be preserved.</li>
+                      <li>Ensure your PHP configuration supports large file uploads (check <code>upload_max_filesize</code> and <code>post_max_size</code> in <code>php.ini</code>).</li>
+                      <li>Updating system files might temporarily make the web app unavailable. We recommend taking a database backup first.</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex items-start space-x-3 rounded-md border p-4 hover:bg-accent/30 transition-colors">
+                    <Checkbox
+                      id="confirm-update-checkbox"
+                      checked={confirmUpdateCheckbox}
+                      onCheckedChange={(checked) => setConfirmUpdateCheckbox(!!checked)}
+                      disabled={updateStatus === 'uploading' || updateStatus === 'updating'}
+                    />
+                    <div className="space-y-1 leading-none">
+                      <Label htmlFor="confirm-update-checkbox" className="font-medium cursor-pointer">I understand the risks and want to proceed</Label>
+                      <p className="text-xs text-muted-foreground">Confirm that you wish to copy files over the current system and trigger database migrations.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {(updateStatus === 'uploading' || updateStatus === 'updating') && (
+                  <div className="space-y-2 rounded-lg bg-indigo-500/10 p-4 border border-indigo-500/20">
+                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-semibold text-sm">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      {updateProgressMsg}
+                    </div>
+                  </div>
+                )}
+
+                {updateStatus === 'success' && (
+                  <div className="space-y-4">
+                    <div className="rounded-lg bg-green-500/10 p-4 border border-green-500/20 text-green-800 dark:text-green-300 text-sm font-semibold flex items-center gap-2">
+                      <Check className="h-5 w-5 text-green-600" />
+                      {updateProgressMsg}
+                    </div>
+                    {updateLog && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+                          <Terminal className="h-3.5 w-3.5" />
+                          Update logs
+                        </Label>
+                        <pre className="bg-black text-green-400 p-4 rounded font-mono text-xs max-h-60 overflow-y-auto whitespace-pre-wrap">
+                          {updateLog}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {updateStatus === 'error' && (
+                  <div className="rounded-lg bg-rose-500/10 p-4 border border-rose-500/20 text-rose-800 dark:text-rose-300 text-sm font-semibold space-y-1">
+                    <p className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5" />
+                      System update failed
+                    </p>
+                    <p className="text-xs font-normal text-rose-700/80 dark:text-rose-300/80 mt-1">{updateError}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  {updateFile && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setUpdateFile(null);
+                        setUpdateStatus('idle');
+                        setUpdateError('');
+                        setUpdateLog('');
+                      }}
+                      disabled={updateStatus === 'uploading' || updateStatus === 'updating'}
+                    >
+                      Clear File
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSystemUpdate}
+                    disabled={!updateFile || !confirmUpdateCheckbox || updateStatus === 'uploading' || updateStatus === 'updating'}
+                    className="w-full sm:w-auto shadow-sm flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  >
+                    {(updateStatus === 'uploading' || updateStatus === 'updating') ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    Upload and Apply Update
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

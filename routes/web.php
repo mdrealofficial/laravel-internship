@@ -5,6 +5,7 @@ use App\Http\Controllers\SupabaseCompatController;
 use App\Http\Controllers\AuthCompatController;
 use App\Http\Controllers\StorageCompatController;
 use App\Http\Controllers\EdgeFunctionCompatController;
+use App\Http\Controllers\SystemUpdateController;
 
 // Supabase Compatibility API
 Route::prefix('api/supabase-compat')->group(function () {
@@ -18,6 +19,7 @@ Route::prefix('api/supabase-compat')->group(function () {
     
     Route::post('storage/upload', [StorageCompatController::class, 'upload']);
     Route::post('functions/{name}', [EdgeFunctionCompatController::class, 'invoke']);
+    Route::post('system/update', [SystemUpdateController::class, 'update']);
 });
 
 // Storage Fallback Route (handles requests if symbolic link is broken or missing)
