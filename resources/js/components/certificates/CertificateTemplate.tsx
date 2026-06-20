@@ -1,5 +1,5 @@
 import React from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export interface CertificateData {
   recipientName: string;
@@ -18,7 +18,7 @@ export interface CertificateData {
   companyName?: string | null;
 }
 
-export type TemplateType = 'royal' | 'modern' | 'elegant' | 'gradient' | 'minimal';
+export type TemplateType = 'royal' | 'modern' | 'elegant' | 'gradient' | 'minimal' | 'minimalist';
 
 export const templateOptions = [
   { id: 'royal' as TemplateType, name: 'Royal Gold', description: 'Classic and prestigious' },
@@ -26,6 +26,7 @@ export const templateOptions = [
   { id: 'elegant' as TemplateType, name: 'Elegant Cream', description: 'Sophisticated design' },
   { id: 'gradient' as TemplateType, name: 'Gradient Wave', description: 'Bold and dynamic' },
   { id: 'minimal' as TemplateType, name: 'Minimal Clean', description: 'Simple and professional' },
+  { id: 'minimalist' as TemplateType, name: 'Minimalist Sleek', description: 'Modern, asymmetrical layout with clean lines' },
 ];
 
 interface Props {
@@ -38,6 +39,7 @@ export function CertificateTemplate({ data, template }: Props) {
   if (template === 'elegant') return <ElegantCert data={data} />;
   if (template === 'gradient') return <GradientCert data={data} />;
   if (template === 'minimal') return <MinimalCert data={data} />;
+  if (template === 'minimalist') return <MinimalistSleekCert data={data} />;
   return <ModernCert data={data} />;
 }
 
@@ -111,7 +113,7 @@ function RoyalCert({ data }: { data: CertificateData }) {
             <p className="text-xs text-amber-700">Date: {data.issuedDate}</p>
           </div>
           <div className="flex flex-col items-center">
-            <QRCodeSVG value={data.qrCodeUrl} size={50} level="M" fgColor="#92400e" bgColor="transparent" />
+            <QRCodeCanvas value={data.qrCodeUrl} size={50} level="M" fgColor="#92400e" bgColor="transparent" />
             <p className="text-[9px] text-amber-600 mt-1 font-mono">{data.certificateId}</p>
           </div>
           <div className="text-center">
@@ -160,7 +162,7 @@ function ModernCert({ data }: { data: CertificateData }) {
           </div>
           <div className="flex flex-col items-center">
             <div className="p-2 bg-white/5 rounded-lg border border-white/10">
-              <QRCodeSVG value={data.qrCodeUrl} size={48} level="M" fgColor="#60a5fa" bgColor="transparent" />
+              <QRCodeCanvas value={data.qrCodeUrl} size={48} level="M" fgColor="#60a5fa" bgColor="transparent" />
             </div>
             <p className="text-blue-400/60 text-[9px] mt-1 font-mono tracking-wider">{data.certificateId}</p>
           </div>
@@ -219,7 +221,7 @@ function ElegantCert({ data }: { data: CertificateData }) {
           </div>
           <div className="flex flex-col items-center">
             <div className="p-2 bg-white/50 rounded border border-stone-300">
-              <QRCodeSVG value={data.qrCodeUrl} size={46} level="M" fgColor="#57534e" bgColor="transparent" />
+              <QRCodeCanvas value={data.qrCodeUrl} size={46} level="M" fgColor="#57534e" bgColor="transparent" />
             </div>
             <p className="text-stone-500 text-[8px] mt-1 font-mono">{data.certificateId}</p>
           </div>
@@ -288,7 +290,7 @@ function GradientCert({ data }: { data: CertificateData }) {
           </div>
           <div className="flex flex-col items-center">
             <div className="p-2 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
-              <QRCodeSVG value={data.qrCodeUrl} size={50} level="M" fgColor="#7c3aed" bgColor="transparent" />
+              <QRCodeCanvas value={data.qrCodeUrl} size={50} level="M" fgColor="#7c3aed" bgColor="transparent" />
             </div>
             <p className="text-purple-500 text-[8px] mt-1 font-mono">{data.certificateId}</p>
           </div>
@@ -343,13 +345,106 @@ function MinimalCert({ data }: { data: CertificateData }) {
             <p className="text-slate-400 text-xs">Date of Issue</p>
           </div>
           <div className="flex flex-col items-center">
-            <QRCodeSVG value={data.qrCodeUrl} size={44} level="M" fgColor="#0f172a" bgColor="transparent" />
+            <QRCodeCanvas value={data.qrCodeUrl} size={44} level="M" fgColor="#0f172a" bgColor="transparent" />
             <p className="text-slate-400 text-[8px] mt-1 font-mono">{data.certificateId}</p>
           </div>
           <div className="text-right">
             <SignatureImage url={data.signatureUrl} />
             <div className="w-28 border-b border-slate-900 mb-1" />
             <p className="text-slate-400 text-xs">Authorized Signature</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MinimalistSleekCert({ data }: { data: CertificateData }) {
+  return (
+    <div className="relative w-[960px] h-[540px] bg-white overflow-hidden border border-slate-200">
+      {/* Optional Background Pattern */}
+      {data.patternEnabled && data.patternUrl && (
+        <div 
+          className="absolute inset-0" 
+          style={{ 
+            backgroundImage: `url(${data.patternUrl})`,
+            backgroundSize: '200px',
+            backgroundRepeat: 'repeat',
+            opacity: (data.patternOpacity || 5) / 100
+          }} 
+        />
+      )}
+      
+      {/* Grid container with 2 columns: left (620px), right (340px) */}
+      <div style={{ display: 'flex', flexDirection: 'row' }} className="h-full">
+        {/* Left Column: Core content */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} className="w-[620px] h-full p-12 pr-8 text-left z-10">
+          {/* Logo and company info */}
+          <div style={{ display: 'flex', alignItems: 'center' }} className="gap-3.5">
+            <div className="w-9 h-9 bg-slate-900 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
+              <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
+            </div>
+            <div className="flex flex-col">
+              <p className="font-semibold text-slate-800 text-sm tracking-wider leading-none">{data.companyName || 'DIGI5 LTD'}</p>
+              <p className="text-slate-400 text-[10px] tracking-widest mt-1 leading-none uppercase">Internship Program</p>
+            </div>
+          </div>
+
+          {/* Certificate Title & Recipient Details */}
+          <div className="my-auto py-6">
+            <h1 className="text-3xl font-light text-slate-900 tracking-[0.25em] mb-2 uppercase">Certificate of Completion</h1>
+            <div className="w-16 h-[2px] bg-slate-900 mb-6" />
+            
+            <p className="text-slate-400 text-xs tracking-wider uppercase mb-1.5">This is to certify that</p>
+            <h2 className="text-3xl font-semibold text-slate-900 tracking-wide mb-4">{data.recipientName}</h2>
+            
+            <p className="text-slate-600 text-sm leading-relaxed max-w-xl">
+              has successfully fulfilled all requirements and completed the official internship program as a <span className="font-semibold text-slate-900">{data.roleTitle}</span> within the <span className="font-semibold text-slate-900">{data.departmentName}</span> department.
+            </p>
+          </div>
+
+          {/* Internship Timeline */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center' }} className="gap-6 text-xs text-slate-400">
+              <div>
+                <span className="block text-slate-300 font-medium uppercase tracking-wider text-[10px] mb-0.5">Start Date</span>
+                <span className="text-slate-700 font-medium">{data.startDate}</span>
+              </div>
+              <div className="h-6 w-[1px] bg-slate-200" />
+              <div>
+                <span className="block text-slate-300 font-medium uppercase tracking-wider text-[10px] mb-0.5">End Date</span>
+                <span className="text-slate-700 font-medium">{data.endDate}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Verification & Signature */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} className="w-[340px] h-full bg-slate-50/50 border-l border-slate-100 p-12 text-left z-10">
+          {/* Top: QR verification */}
+          <div className="space-y-4">
+            <p className="text-slate-400 text-[9px] tracking-widest uppercase font-medium">Verify Authenticity</p>
+            <div className="inline-block p-3 bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-slate-100">
+              <QRCodeCanvas value={data.qrCodeUrl} size={64} level="M" fgColor="#0f172a" bgColor="transparent" />
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-500 font-medium leading-none">Certificate ID</p>
+              <p className="text-[10px] text-slate-400 font-mono mt-1 leading-none">{data.certificateId}</p>
+            </div>
+          </div>
+
+          {/* Bottom: Signature & Date */}
+          <div className="space-y-6">
+            <div>
+              <SignatureImage url={data.signatureUrl} />
+              <div className="w-full border-b border-slate-300 mb-1.5" />
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Authorized Signature</p>
+            </div>
+            
+            <div>
+              <p className="text-slate-800 text-sm font-semibold leading-none">{data.issuedDate}</p>
+              <p className="text-[10px] text-slate-400 tracking-wider uppercase mt-1 leading-none">Date of Issue</p>
+            </div>
           </div>
         </div>
       </div>

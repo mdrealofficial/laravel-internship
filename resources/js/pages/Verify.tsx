@@ -47,7 +47,8 @@ const Verify = () => {
     certificate_pattern_url: string | null;
     certificate_pattern_opacity: number;
     company_name: string | null;
-  }>({ company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5, company_name: 'DIGI5 LTD' });
+    certificate_download_format?: 'pdf' | 'png' | 'jpeg';
+  }>({ company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5, company_name: 'DIGI5 LTD', certificate_download_format: 'pdf' });
   const certificateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,7 +84,8 @@ const Verify = () => {
         certificate_pattern_url: string | null;
         certificate_pattern_opacity: number;
         company_name: string | null;
-      } = { company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5, company_name: 'DIGI5 LTD' };
+        certificate_download_format?: 'pdf' | 'png' | 'jpeg';
+      } = { company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5, company_name: 'DIGI5 LTD', certificate_download_format: 'pdf' };
       settings.forEach(s => {
         if (s.setting_key === 'company_logo_url') map.company_logo_url = s.setting_value;
         if (s.setting_key === 'signature_url') map.signature_url = s.setting_value;
@@ -91,6 +93,7 @@ const Verify = () => {
         if (s.setting_key === 'certificate_pattern_url') map.certificate_pattern_url = s.setting_value;
         if (s.setting_key === 'certificate_pattern_opacity') map.certificate_pattern_opacity = parseInt(s.setting_value || '5', 10);
         if (s.setting_key === 'company_name') map.company_name = s.setting_value;
+        if (s.setting_key === 'certificate_download_format') map.certificate_download_format = (s.setting_value as 'pdf' | 'png' | 'jpeg') || 'pdf';
       });
       setSiteSettings(map);
     }
@@ -200,25 +203,39 @@ const Verify = () => {
         backgroundColor: '#ffffff',
       });
       
-      // Use JPEG with 0.8 quality for smaller file size
-      const imgData = canvas.toDataURL('image/jpeg', 0.8);
-      
-      // Use custom page size matching 16:9 aspect ratio for perfect fit
-      const pageWidth = 297; // A4 landscape width in mm
-      const pageHeight = pageWidth / (16/9); // Height to match 16:9 ratio (~167mm)
-      
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: [pageWidth, pageHeight],
-        compress: true,
-      });
-      
-      // Fill the entire page - no margins
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
-      pdf.save(`Certificate-${result.certificate_id}.pdf`);
-      
-      toast({ title: 'Success', description: 'Certificate downloaded successfully' });
+      const format = siteSettings.certificate_download_format || 'pdf';
+
+      if (format === 'png') {
+        const imgData = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `Certificate-${result.certificate_id}.png`;
+        link.href = imgData;
+        link.click();
+        toast({ title: 'Success', description: 'Certificate downloaded as PNG image' });
+      } else if (format === 'jpeg') {
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const link = document.createElement('a');
+        link.download = `Certificate-${result.certificate_id}.jpg`;
+        link.href = imgData;
+        link.click();
+        toast({ title: 'Success', description: 'Certificate downloaded as JPEG image' });
+      } else {
+        // PDF default
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        const pageWidth = 297;
+        const pageHeight = pageWidth / (16/9);
+
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: [pageWidth, pageHeight],
+          compress: true,
+        });
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        pdf.save(`Certificate-${result.certificate_id}.pdf`);
+        toast({ title: 'Success', description: 'Certificate downloaded successfully as PDF' });
+      }
     } catch (error) {
       console.error('Error downloading PDF:', error);
       toast({ title: 'Error', description: 'Failed to download certificate', variant: 'destructive' });
@@ -433,7 +450,7 @@ const Verify = () => {
                 ) : (
                   <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 )}
-                <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">Download PDF</span>
+                <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">Download {(siteSettings.certificate_download_format || 'pdf').toUpperCase()}</span>
               </button>
               {/* Close Button */}
               <button

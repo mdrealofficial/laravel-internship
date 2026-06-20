@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { User, Lock, Image, Upload, Loader2, Save, Trash2, Layers, Check, Mail, MessageSquare, FileText, Menu, Award, Brain } from 'lucide-react';
+import { User, Lock, Image, Upload, Loader2, Save, Trash2, Layers, Check, Mail, MessageSquare, FileText, Menu, Award, Brain, Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { templateOptions, TemplateType } from '@/components/certificates/CertificateTemplate';
 import { Slider } from '@/components/ui/slider';
@@ -53,6 +53,7 @@ interface SiteSettings {
   certificate_pattern_enabled: boolean;
   certificate_pattern_opacity: number;
   certificate_default_theme: TemplateType;
+  certificate_download_format: 'pdf' | 'png' | 'jpeg';
   gemini_api_key: string | null;
   company_name: string | null;
   admin_email: string | null;
@@ -98,6 +99,7 @@ const Settings = () => {
     certificate_pattern_enabled: false,
     certificate_pattern_opacity: 5,
     certificate_default_theme: 'modern',
+    certificate_download_format: 'pdf',
     gemini_api_key: null,
     company_name: 'DIGI5 LTD',
     admin_email: null,
@@ -120,6 +122,7 @@ const Settings = () => {
   const [companyName, setCompanyName] = useState('DIGI5 LTD');
   const [savingCompanyName, setSavingCompanyName] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
+  const [savingFormat, setSavingFormat] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
@@ -184,6 +187,7 @@ const Settings = () => {
           certificate_pattern_enabled: false,
           certificate_pattern_opacity: 5,
           certificate_default_theme: 'modern',
+          certificate_download_format: 'pdf',
           gemini_api_key: null,
           company_name: 'DIGI5 LTD',
           admin_email: null,
@@ -210,6 +214,8 @@ const Settings = () => {
             settingsMap.certificate_pattern_opacity = parseInt(s.setting_value || '5', 10);
           } else if (s.setting_key === 'certificate_default_theme') {
             settingsMap.certificate_default_theme = (s.setting_value as TemplateType) || 'modern';
+          } else if (s.setting_key === 'certificate_download_format') {
+            settingsMap.certificate_download_format = (s.setting_value as 'pdf' | 'png' | 'jpeg') || 'pdf';
           } else if (s.setting_key in settingsMap) {
             (settingsMap as any)[s.setting_key] = s.setting_value;
           }
@@ -658,6 +664,31 @@ const Settings = () => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setSavingTheme(false);
+    }
+  };
+
+  const updateDownloadFormat = async (format: 'pdf' | 'png' | 'jpeg') => {
+    if (!user) return;
+    setSavingFormat(true);
+    
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          setting_key: 'certificate_download_format', 
+          setting_value: format,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id 
+        }, { onConflict: 'setting_key' });
+      
+      if (error) throw error;
+      
+      setSiteSettings(prev => ({ ...prev, certificate_download_format: format }));
+      toast({ title: 'Success', description: `Default certificate download format set to ${format.toUpperCase()}` });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setSavingFormat(false);
     }
   };
 
@@ -1172,6 +1203,56 @@ const Settings = () => {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Saving theme preference...
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Default Certificate Download Format */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      Default Certificate Download Format
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Choose the default format (PDF, PNG, or JPEG) when certificates are downloaded
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { id: 'pdf', name: 'PDF Document', description: 'Standard high-quality vector print document' },
+                      { id: 'png', name: 'PNG Image', description: 'Lossless transparent image format' },
+                      { id: 'jpeg', name: 'JPEG Image', description: 'Standard compressed image format' }
+                    ].map((format) => (
+                      <button
+                        key={format.id}
+                        type="button"
+                        onClick={() => updateDownloadFormat(format.id as 'pdf' | 'png' | 'jpeg')}
+                        disabled={savingFormat}
+                        className={`relative p-4 border rounded-lg text-left transition-all hover:border-primary/50 ${
+                          siteSettings.certificate_download_format === format.id 
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                            : 'bg-muted/30'
+                        }`}
+                      >
+                        {siteSettings.certificate_download_format === format.id && (
+                          <div className="absolute top-2 right-2">
+                            <Check className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
+                        <p className="font-medium">{format.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{format.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {savingFormat && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving format preference...
                     </div>
                   )}
                 </div>

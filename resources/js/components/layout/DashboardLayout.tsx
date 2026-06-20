@@ -122,10 +122,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           isActive
             ? "bg-sidebar-primary text-sidebar-primary-foreground"
             : "text-sidebar-foreground hover:bg-sidebar-accent",
-          collapsed && "justify-center px-2"
+          collapsed && "justify-center px-0 w-10 h-10 mx-auto gap-0"
         )}
       >
-        <Icon size={20} />
+        <Icon size={20} className="shrink-0" />
         {!collapsed && <span className="font-medium">{item.label}</span>}
       </Link>
     );
@@ -184,7 +184,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          <nav className={cn("flex-1 p-4 space-y-2 overflow-y-auto", collapsed && "p-2 space-y-3")}>
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return <NavItem key={item.path} item={item} isActive={isActive} />;
@@ -202,23 +202,23 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                 collapsed ? "justify-center" : "justify-start"
               )}
             >
-              {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+              {collapsed ? <ChevronRight size={18} className="shrink-0" /> : <ChevronLeft size={18} className="shrink-0" />}
               {!collapsed && <span className="ml-2 text-sm">Collapse</span>}
             </Button>
           </div>
 
           {/* User section */}
-          <div className="p-4 border-t border-sidebar-border">
+          <div className={cn("p-4 border-t border-sidebar-border", collapsed && "p-2 flex justify-center")}>
             {collapsed ? (
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="w-full text-sidebar-foreground hover:bg-sidebar-accent"
+                    className="w-10 h-10 mx-auto flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent"
                     onClick={handleSignOut}
                   >
-                    <LogOut size={20} />
+                    <LogOut size={20} className="shrink-0" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">Sign Out</TooltipContent>

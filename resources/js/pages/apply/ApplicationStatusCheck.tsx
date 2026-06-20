@@ -49,6 +49,7 @@ export default function ApplicationStatusCheck() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [companyName, setCompanyName] = useState('DIGI5 LTD');
 
   useEffect(() => {
@@ -77,14 +78,23 @@ export default function ApplicationStatusCheck() {
     setSearched(true);
 
     try {
-      const { data, error } = await supabase
-        .from('applications')
-        .select('*, form:application_forms(*, department:departments(*))')
-        .eq('applicant_email', email.trim().toLowerCase())
-        .order('created_at', { ascending: false });
+      const [appsRes, logsRes] = await Promise.all([
+        supabase
+          .from('applications')
+          .select('*, form:application_forms(*, department:departments(*))')
+          .eq('applicant_email', email.trim().toLowerCase())
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('notification_logs')
+          .select('id, subject, notification_type, status, created_at')
+          .eq('recipient', email.trim().toLowerCase())
+          .eq('notification_type', 'email')
+          .order('created_at', { ascending: false })
+      ]);
 
-      if (error) throw error;
-      setApplications(data || []);
+      if (appsRes.error) throw appsRes.error;
+      setApplications(appsRes.data || []);
+      setLogs(logsRes.data || []);
     } catch (err) {
       console.error('Error fetching application status:', err);
     } finally {
@@ -300,6 +310,38 @@ export default function ApplicationStatusCheck() {
                   </Card>
                 );
               })}
+              
+              {/* Received Correspondence / Emails */}
+              {logs.length > 0 && (
+                <Card className="mt-8 border-primary/10 shadow-lg">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+                      <Mail className="h-5 w-5 text-indigo-600 shrink-0" />
+                      Received Correspondence & Emails
+                    </CardTitle>
+                    <CardDescription>
+                      Below is the history of official emails sent to your registered address.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {logs.map((log) => (
+                      <div key={log.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-slate-50 border border-slate-100/60 hover:bg-slate-100/50 transition-all gap-4">
+                        <div>
+                          <p className="font-semibold text-slate-800 text-sm sm:text-base leading-tight">{log.subject}</p>
+                          <p className="text-xs text-slate-400 mt-1.5">
+                            Sent: {format(new Date(log.created_at), 'PPP p')}
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" className="shrink-0 self-start sm:self-auto border-indigo-150 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50" asChild>
+                          <a href={`${window.location.origin}/api/mail-track/webview/${log.id}`} target="_blank" rel="noopener noreferrer">
+                            View in Browser
+                          </a>
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )
         ) : (
