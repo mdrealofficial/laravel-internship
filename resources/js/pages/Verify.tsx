@@ -46,7 +46,8 @@ const Verify = () => {
     certificate_pattern_enabled: boolean;
     certificate_pattern_url: string | null;
     certificate_pattern_opacity: number;
-  }>({ company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5 });
+    company_name: string | null;
+  }>({ company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5, company_name: 'DIGI5 LTD' });
   const certificateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,13 +82,15 @@ const Verify = () => {
         certificate_pattern_enabled: boolean;
         certificate_pattern_url: string | null;
         certificate_pattern_opacity: number;
-      } = { company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5 };
+        company_name: string | null;
+      } = { company_logo_url: null, signature_url: null, certificate_pattern_enabled: false, certificate_pattern_url: null, certificate_pattern_opacity: 5, company_name: 'DIGI5 LTD' };
       settings.forEach(s => {
         if (s.setting_key === 'company_logo_url') map.company_logo_url = s.setting_value;
         if (s.setting_key === 'signature_url') map.signature_url = s.setting_value;
         if (s.setting_key === 'certificate_pattern_enabled') map.certificate_pattern_enabled = s.setting_value === 'true';
         if (s.setting_key === 'certificate_pattern_url') map.certificate_pattern_url = s.setting_value;
         if (s.setting_key === 'certificate_pattern_opacity') map.certificate_pattern_opacity = parseInt(s.setting_value || '5', 10);
+        if (s.setting_key === 'company_name') map.company_name = s.setting_value;
       });
       setSiteSettings(map);
     }
@@ -305,7 +308,7 @@ const Verify = () => {
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Award className="h-4 w-4 text-primary" />
                 </div>
-                <span className="text-muted-foreground">Official DIGI5 LTD recognition</span>
+                <span className="text-muted-foreground">Official {siteSettings.company_name || 'DIGI5 LTD'} recognition</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -344,7 +347,7 @@ const Verify = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-lg bg-muted/50">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Department</p>
-                      <p className="font-medium text-sm">{result.interns?.departments?.name || 'DIGI5 LTD'}</p>
+                      <p className="font-medium text-sm">{result.interns?.departments?.name || siteSettings.company_name || 'DIGI5 LTD'}</p>
                     </div>
                     <div className="p-3 rounded-lg bg-muted/50">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Certificate ID</p>
@@ -453,7 +456,7 @@ const Verify = () => {
                   data={{
                     recipientName: result.interns?.profiles?.full_name || 'Unknown',
                     roleTitle: result.interns?.role_title || 'Intern',
-                    departmentName: result.interns?.departments?.name || 'DIGI5 LTD',
+                    departmentName: result.interns?.departments?.name || siteSettings.company_name || 'DIGI5 LTD',
                     startDate: formatDate(result.interns?.start_date || ''),
                     endDate: result.interns?.end_date ? formatDate(result.interns.end_date) : 'Present',
                     certificateId: result.certificate_id,
@@ -464,6 +467,7 @@ const Verify = () => {
                     patternEnabled: siteSettings.certificate_pattern_enabled,
                     patternUrl: getAssetUrl(siteSettings.certificate_pattern_url),
                     patternOpacity: siteSettings.certificate_pattern_opacity,
+                    companyName: siteSettings.company_name,
                   }}
                 />
               )}

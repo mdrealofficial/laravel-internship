@@ -196,6 +196,12 @@ class EdgeFunctionCompatController extends Controller
         $recipientPhone = $request->input('recipient_phone');
         $data = $request->input('data', []);
         $data['status_url'] = url('/status');
+        
+        $companyName = \Illuminate\Support\Facades\DB::table('site_settings')
+            ->where('setting_key', 'company_name')
+            ->value('setting_value') ?? 'DIGI5 LTD';
+        $data['company_name'] = $companyName;
+        
         $forceSend = $request->input('force_send', false);
 
         if (!$templateKey) {
@@ -381,20 +387,35 @@ class EdgeFunctionCompatController extends Controller
 
     private function processTemplate($template, $data)
     {
-        return preg_replace_callback('/\{\{(\w+)\}\}/', function ($matches) use ($data) {
+        $processed = preg_replace_callback('/\{\{(\w+)\}\}/', function ($matches) use ($data) {
             return $data[$matches[1]] ?? $matches[0];
         }, $template);
+
+        // Fetch company name from settings to replace hardcoded DIGI5 LTD
+        $companyName = \Illuminate\Support\Facades\DB::table('site_settings')
+            ->where('setting_key', 'company_name')
+            ->value('setting_value') ?? 'DIGI5 LTD';
+
+        if ($companyName && $companyName !== 'DIGI5 LTD') {
+            $processed = str_replace('DIGI5 LTD', $companyName, $processed);
+        }
+
+        return $processed;
     }
 
     private function sendEmail($config, $to, $subject, $body)
     {
         try {
             $provider = $config['provider'] ?? (empty($config['host']) ? 'resend' : 'smtp');
+            
+            $companyName = \Illuminate\Support\Facades\DB::table('site_settings')
+                ->where('setting_key', 'company_name')
+                ->value('setting_value') ?? 'DIGI5 LTD';
 
             if ($provider === 'resend' && !empty($config['api_key'])) {
                 $response = Http::withToken($config['api_key'])
                     ->post('https://api.resend.com/emails', [
-                        'from' => ($config['from_name'] ?? 'DIGI5') . ' <' . ($config['from_email'] ?? 'onboarding@resend.dev') . '>',
+                        'from' => ($config['from_name'] ?? $companyName) . ' <' . ($config['from_email'] ?? 'onboarding@resend.dev') . '>',
                         'to' => [$to],
                         'subject' => $subject,
                         'html' => nl2br($body),
@@ -422,7 +443,7 @@ class EdgeFunctionCompatController extends Controller
                     'mail.mailers.smtp.username' => $config['username'] ?? null,
                     'mail.mailers.smtp.password' => $config['password'] ?? null,
                     'mail.from.address' => $config['from_email'] ?? 'no-reply@example.com',
-                    'mail.from.name' => $config['from_name'] ?? 'DIGI5',
+                    'mail.from.name' => $config['from_name'] ?? $companyName,
                 ]);
                 Mail::purge();
             }

@@ -54,6 +54,7 @@ interface SiteSettings {
   certificate_pattern_opacity: number;
   certificate_default_theme: TemplateType;
   gemini_api_key: string | null;
+  company_name: string | null;
 }
 
 const Settings = () => {
@@ -82,7 +83,10 @@ const Settings = () => {
     certificate_pattern_opacity: 5,
     certificate_default_theme: 'modern',
     gemini_api_key: null,
+    company_name: 'DIGI5 LTD',
   });
+  const [companyName, setCompanyName] = useState('DIGI5 LTD');
+  const [savingCompanyName, setSavingCompanyName] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(false);
@@ -130,6 +134,7 @@ const Settings = () => {
           certificate_pattern_opacity: 5,
           certificate_default_theme: 'modern',
           gemini_api_key: null,
+          company_name: 'DIGI5 LTD',
         };
         settings.forEach(s => {
           if (s.setting_key === 'certificate_pattern_enabled') {
@@ -143,6 +148,7 @@ const Settings = () => {
           }
         });
         setSiteSettings(settingsMap);
+        setCompanyName(settingsMap.company_name || 'DIGI5 LTD');
         setGeminiApiKey(settingsMap.gemini_api_key || '');
       }
     } catch (error) {
@@ -177,11 +183,41 @@ const Settings = () => {
     }
   };
 
+  const saveCompanyName = async () => {
+    if (!user) return;
+    setSavingCompanyName(true);
+    
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          setting_key: 'company_name', 
+          setting_value: companyName || null,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id 
+        }, { onConflict: 'setting_key' });
+      
+      if (error) throw error;
+      
+      setSiteSettings(prev => ({ ...prev, company_name: companyName }));
+      toast({ title: 'Success', description: 'Company Name saved successfully' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setSavingCompanyName(false);
+    }
+  };
+
   const updateProfile = async () => {
     if (!user) return;
     setSaving(true);
     
     try {
+      if (email !== user.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email });
+        if (authError) throw authError;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({ full_name: fullName, updated_at: new Date().toISOString() })
@@ -547,10 +583,10 @@ const Settings = () => {
                     <Input
                       id="email"
                       value={email}
-                      disabled
-                      className="bg-muted"
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email address"
                     />
-                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                    <p className="text-xs text-muted-foreground">This updates your login credentials and profile email</p>
                   </div>
                 </div>
                 <Button onClick={updateProfile} disabled={saving}>
@@ -610,6 +646,26 @@ const Settings = () => {
                 <CardDescription>Customize your company branding for certificates and the application</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Company Name */}
+                <div className="space-y-3">
+                  <Label htmlFor="companyName">Company Name</Label>
+                  <p className="text-sm text-muted-foreground">This name will be displayed across headers, footers, certificates, and notification templates</p>
+                  <div className="flex gap-2 max-w-xl">
+                    <Input
+                      id="companyName"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="e.g. DIGI5 LTD"
+                    />
+                    <Button onClick={saveCompanyName} disabled={savingCompanyName}>
+                      {savingCompanyName ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      Save Name
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
                 {/* Company Logo */}
                 <div className="space-y-3">
                   <Label>Company Logo</Label>

@@ -167,11 +167,24 @@ class AuthCompatController extends Controller
         }
 
         $password = $request->input('password');
+        $email = $request->input('email');
         $userData = $request->input('data');
 
         try {
             if ($password) {
                 $user->password = Hash::make($password);
+            }
+
+            if ($email && $email !== $user->email) {
+                // Check if any other user has this email
+                $exists = User::where('email', $email)->where('id', '!=', $user->id)->exists();
+                if ($exists) {
+                    return response()->json([
+                        'data' => null,
+                        'error' => 'This email address is already registered.'
+                    ], 400);
+                }
+                $user->email = $email;
             }
 
             if ($userData && isset($userData['full_name'])) {
@@ -180,13 +193,16 @@ class AuthCompatController extends Controller
 
             $user->save();
 
-            // Also update profile if full_name was changed
-            if ($userData && isset($userData['full_name'])) {
-                $profile = $user->profile;
-                if ($profile) {
+            // Also update profile if full_name or email was changed
+            $profile = $user->profile;
+            if ($profile) {
+                if ($userData && isset($userData['full_name'])) {
                     $profile->full_name = $userData['full_name'];
-                    $profile->save();
                 }
+                if ($email && $email !== $profile->email) {
+                    $profile->email = $email;
+                }
+                $profile->save();
             }
 
             return response()->json([

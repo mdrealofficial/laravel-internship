@@ -237,9 +237,21 @@ export const supabase = {
       };
     },
 
-    async updateUser({ password, data: userData }: { password?: string; data?: any }) {
+    async updateUser({ password, email, data: userData }: { password?: string; email?: string; data?: any }) {
       try {
-        const res = await axios.post('/api/supabase-compat/auth/update-user', { password, data: userData });
+        const res = await axios.post('/api/supabase-compat/auth/update-user', { password, email, data: userData });
+        if (res.data.data?.user) {
+          if (currentSession) {
+            currentSession = {
+              ...currentSession,
+              user: {
+                ...currentSession.user,
+                ...res.data.data.user
+              }
+            };
+            notifyAuthChange('USER_UPDATED', currentSession);
+          }
+        }
         return { data: res.data.data, error: res.data.error ? { message: res.data.error } : null };
       } catch (err: any) {
         return { data: null, error: { message: err.response?.data?.error || err.message } };

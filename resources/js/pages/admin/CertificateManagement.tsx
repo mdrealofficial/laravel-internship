@@ -29,6 +29,7 @@ interface SiteSettings {
   company_logo_url: string | null;
   signature_url: string | null;
   certificate_default_theme: TemplateType;
+  company_name?: string | null;
 }
 
 const CertificateManagement = () => {
@@ -112,11 +113,12 @@ const CertificateManagement = () => {
       const settings = settingsRes.data || [];
 
       // Map site settings
-      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null, certificate_default_theme: 'modern' };
+      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null, certificate_default_theme: 'modern', company_name: 'DIGI5 LTD' };
       settings.forEach(s => {
         if (s.setting_key === 'company_logo_url') settingsMap.company_logo_url = s.setting_value;
         if (s.setting_key === 'signature_url') settingsMap.signature_url = s.setting_value;
         if (s.setting_key === 'certificate_default_theme') settingsMap.certificate_default_theme = (s.setting_value as TemplateType) || 'modern';
+        if (s.setting_key === 'company_name') settingsMap.company_name = s.setting_value;
       });
       setSiteSettings(settingsMap);
       
@@ -195,7 +197,7 @@ const CertificateManagement = () => {
               data: {
                 intern_name: intern.profile.full_name || 'Intern',
                 certificate_id: certId,
-                department_name: intern.department?.name || 'DIGI5 LTD',
+                department_name: intern.department?.name || siteSettings.company_name || 'DIGI5 LTD',
                 role_title: intern.role_title || 'Intern',
                 verification_url: verifyUrl,
               },
@@ -298,7 +300,7 @@ const CertificateManagement = () => {
           data: {
             intern_name: cert.intern.profile.full_name || 'Intern',
             certificate_id: cert.certificate_id,
-            department_name: cert.intern.department?.name || 'DIGI5 LTD',
+            department_name: cert.intern.department?.name || siteSettings.company_name || 'DIGI5 LTD',
             role_title: cert.intern.role_title || 'Intern',
             verification_url: verifyUrl,
           },
@@ -628,7 +630,7 @@ const CertificateManagement = () => {
                     data={{
                       recipientName: previewCert.intern?.profile?.full_name || 'Unknown',
                       roleTitle: previewCert.intern?.role_title || 'Intern',
-                      departmentName: previewCert.intern?.department?.name || 'DIGI5 LTD',
+                      departmentName: previewCert.intern?.department?.name || siteSettings.company_name || 'DIGI5 LTD',
                       startDate: formatDate(previewCert.intern?.start_date || ''),
                       endDate: previewCert.intern?.end_date ? formatDate(previewCert.intern.end_date) : 'Present',
                       certificateId: previewCert.certificate_id,
@@ -636,6 +638,7 @@ const CertificateManagement = () => {
                       qrCodeUrl: `${window.location.origin}/verify?id=${previewCert.certificate_id}`,
                       companyLogoUrl: siteSettings.company_logo_url,
                       signatureUrl: siteSettings.signature_url,
+                      companyName: siteSettings.company_name,
                     }}
                   />
                 </div>

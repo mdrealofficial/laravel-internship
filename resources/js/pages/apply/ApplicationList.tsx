@@ -46,10 +46,27 @@ export default function ApplicationList() {
   const [forms, setForms] = useState<ApplicationForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [companyName, setCompanyName] = useState('DIGI5 LTD');
 
   useEffect(() => {
     fetchForms();
+    fetchCompanyName();
   }, []);
+
+  const fetchCompanyName = async () => {
+    try {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('setting_value')
+        .eq('setting_key', 'company_name')
+        .maybeSingle();
+      if (data?.setting_value) {
+        setCompanyName(data.setting_value);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchForms = async () => {
     const { data } = await supabase
@@ -232,7 +249,7 @@ export default function ApplicationList() {
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="border-t border-gray-100 py-8 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} DIGI5 LTD. All rights reserved.
+        © {new Date().getFullYear()} {companyName}. All rights reserved.
       </footer>
     </div>
   );

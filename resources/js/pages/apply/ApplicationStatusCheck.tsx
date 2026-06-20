@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -49,6 +49,25 @@ export default function ApplicationStatusCheck() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [companyName, setCompanyName] = useState('DIGI5 LTD');
+
+  useEffect(() => {
+    const fetchCompanyName = async () => {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('setting_value')
+          .eq('setting_key', 'company_name')
+          .maybeSingle();
+        if (data?.setting_value) {
+          setCompanyName(data.setting_value);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchCompanyName();
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +128,7 @@ export default function ApplicationStatusCheck() {
             <div className="p-1.5 rounded-lg bg-primary text-primary-foreground">
               <FileText className="h-5 w-5" />
             </div>
-            <span>DIGI5 LTD Portal</span>
+            <span>{companyName} Portal</span>
           </div>
           <Button variant="ghost" asChild>
             <a href="/apply">View Careers</a>
@@ -294,7 +313,7 @@ export default function ApplicationStatusCheck() {
       {/* Footer */}
       <footer className="border-t bg-card/50 py-8 text-center text-sm text-muted-foreground mt-12">
         <div className="container mx-auto px-4">
-          <p>© {new Date().getFullYear()} DIGI5 LTD. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {companyName}. All rights reserved.</p>
         </div>
       </footer>
     </div>

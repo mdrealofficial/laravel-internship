@@ -65,23 +65,30 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
   const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+  const [companyName, setCompanyName] = React.useState('DIGI5 LTD');
 
   React.useEffect(() => {
-    const fetchLogo = async () => {
+    const fetchSettings = async () => {
       try {
         const { data } = await supabase
           .from('site_settings')
-          .select('setting_value')
-          .eq('setting_key', 'company_logo_url')
-          .maybeSingle();
-        if (data?.setting_value) {
-          setLogoUrl(data.setting_value);
+          .select('setting_key, setting_value')
+          .in('setting_key', ['company_logo_url', 'company_name']);
+        if (data) {
+          data.forEach(s => {
+            if (s.setting_key === 'company_logo_url' && s.setting_value) {
+              setLogoUrl(s.setting_value);
+            }
+            if (s.setting_key === 'company_name' && s.setting_value) {
+              setCompanyName(s.setting_value);
+            }
+          });
         }
       } catch (err) {
-        console.error('Error fetching logo:', err);
+        console.error('Error fetching settings:', err);
       }
     };
-    fetchLogo();
+    fetchSettings();
   }, []);
 
   const navItems = userRole === 'admin' 
@@ -141,7 +148,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
-          <span className="font-bold text-xl text-sidebar-foreground">DIGI5 LTD</span>
+          <span className="font-bold text-xl text-sidebar-foreground">{companyName}</span>
         </div>
       </header>
 

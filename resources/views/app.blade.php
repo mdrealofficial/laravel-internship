@@ -1,15 +1,24 @@
+<?php
+    $companyName = \Illuminate\Support\Facades\DB::table('site_settings')
+        ->where('setting_key', 'company_name')
+        ->value('setting_value') ?? 'DIGI5 LTD';
+    
+    $faviconUrl = \Illuminate\Support\Facades\DB::table('site_settings')
+        ->where('setting_key', 'favicon_url')
+        ->value('setting_value') ?? '/favicon.svg';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DIGI5 LTD - Certificate Verification</title>
-    <meta name="description" content="DIGI5 LTD Internship Management and Certificate Verification Platform" />
-    <meta name="author" content="DIGI5 LTD" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{{ $companyName }} - Certificate Verification</title>
+    <meta name="description" content="{{ $companyName }} Internship Management and Certificate Verification Platform" />
+    <meta name="author" content="{{ $companyName }}" />
+    <link rel="icon" type="image/svg+xml" href="{{ $faviconUrl }}" />
 
-    <meta property="og:title" content="DIGI5 LTD - Certificate Verification" />
-    <meta property="og:description" content="DIGI5 LTD Internship Management and Certificate Verification Platform" />
+    <meta property="og:title" content="{{ $companyName }} - Certificate Verification" />
+    <meta property="og:description" content="{{ $companyName }} Internship Management and Certificate Verification Platform" />
     <meta property="og:type" content="website" />
 
     <meta name="twitter:card" content="summary_large_image" />

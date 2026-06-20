@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 interface SiteSettings {
   company_logo_url: string | null;
   signature_url: string | null;
+  company_name?: string | null;
 }
 
 const InternCertificate = () => {
@@ -40,10 +41,11 @@ const InternCertificate = () => {
 
       // Map site settings
       const settings = settingsRes.data || [];
-      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null };
+      const settingsMap: SiteSettings = { company_logo_url: null, signature_url: null, company_name: 'DIGI5 LTD' };
       settings.forEach(s => {
         if (s.setting_key === 'company_logo_url') settingsMap.company_logo_url = s.setting_value;
         if (s.setting_key === 'signature_url') settingsMap.signature_url = s.setting_value;
+        if (s.setting_key === 'company_name') settingsMap.company_name = s.setting_value;
       });
       setSiteSettings(settingsMap);
 
@@ -156,7 +158,7 @@ const InternCertificate = () => {
                 data={{
                   recipientName: data.intern.profiles?.full_name || 'Unknown',
                   roleTitle: data.intern.role_title || 'Intern',
-                  departmentName: data.intern.departments?.name || 'DIGI5 LTD',
+                  departmentName: data.intern.departments?.name || siteSettings.company_name || 'DIGI5 LTD',
                   startDate: formatDate(data.intern.start_date || ''),
                   endDate: data.intern.end_date ? formatDate(data.intern.end_date) : 'Present',
                   certificateId: data.certificate.certificate_id,
@@ -164,6 +166,7 @@ const InternCertificate = () => {
                   qrCodeUrl: getVerifyUrl(),
                   companyLogoUrl: siteSettings.company_logo_url,
                   signatureUrl: siteSettings.signature_url,
+                  companyName: siteSettings.company_name,
                 }}
               />
             </div>

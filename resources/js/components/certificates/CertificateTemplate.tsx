@@ -15,6 +15,7 @@ export interface CertificateData {
   patternUrl?: string | null;
   patternEnabled?: boolean;
   patternOpacity?: number;
+  companyName?: string | null;
 }
 
 export type TemplateType = 'royal' | 'modern' | 'elegant' | 'gradient' | 'minimal';
@@ -93,7 +94,7 @@ function RoyalCert({ data }: { data: CertificateData }) {
           <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
             <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-lg" />
           </div>
-          <span className="font-serif text-2xl font-bold text-amber-800 tracking-wide">DIGI5 LTD</span>
+          <span className="font-serif text-2xl font-bold text-amber-800 tracking-wide">{data.companyName || 'DIGI5 LTD'}</span>
         </div>
         <div className="w-48 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent mb-3" />
         <h1 className="font-serif text-3xl font-bold text-amber-900 tracking-widest mb-1">CERTIFICATE</h1>
@@ -136,7 +137,7 @@ function ModernCert({ data }: { data: CertificateData }) {
             <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
           </div>
           <div className="h-6 w-[1px] bg-white/20" />
-          <span className="text-white/80 font-light tracking-widest text-sm">DIGI5 LTD</span>
+          <span className="text-white/80 font-light tracking-widest text-sm">{data.companyName || 'DIGI5 LTD'}</span>
         </div>
         <h1 className="text-4xl font-extralight text-white tracking-[0.2em] mb-1">CERTIFICATE</h1>
         <p className="text-blue-400 tracking-[0.5em] text-xs mb-6">OF EXCELLENCE</p>
@@ -201,7 +202,7 @@ function ElegantCert({ data }: { data: CertificateData }) {
           </div>
           <div className="w-20 h-[1px] bg-gradient-to-r from-transparent via-stone-500 to-transparent" />
         </div>
-        <p className="text-stone-500 tracking-[0.4em] text-xs mb-1">DIGI5 LTD</p>
+        <p className="text-stone-500 tracking-[0.4em] text-xs mb-1">{data.companyName || 'DIGI5 LTD'}</p>
         <h1 className="font-serif text-4xl text-stone-800 tracking-wide mb-1">Certificate</h1>
         <p className="text-stone-500 italic text-sm mb-5">of Internship Completion</p>
         <p className="text-stone-600 text-sm mb-2 tracking-wide">This certifies that</p>
@@ -266,7 +267,7 @@ function GradientCert({ data }: { data: CertificateData }) {
             <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
               <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
             </div>
-            <span className="text-white font-medium tracking-wider text-sm">DIGI5 LTD</span>
+            <span className="text-white font-medium tracking-wider text-sm">{data.companyName || 'DIGI5 LTD'}</span>
           </div>
         </div>
         <div className="mt-6">
@@ -325,7 +326,7 @@ function MinimalCert({ data }: { data: CertificateData }) {
             <CompanyLogo url={data.companyLogoUrl} className="w-full h-full" fallbackText="D5" fallbackClass="text-white font-bold text-sm" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <p className="font-bold text-slate-900 text-lg leading-tight tracking-wider">DIGI5 LTD</p>
+            <p className="font-bold text-slate-900 text-lg leading-tight tracking-wider">{data.companyName || 'DIGI5 LTD'}</p>
             <p className="text-slate-500 text-xs leading-none tracking-widest mt-1">INTERNSHIP PROGRAM</p>
           </div>
         </div>
