@@ -43,6 +43,7 @@ import { toast } from 'sonner';
 import { Search, MoreHorizontal, Eye, Download, UserPlus, Trash2, LayoutGrid, List, Calendar, Sparkles, Clock, Video, MapPin, PhoneCall, Link2, Brain, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { Application, ApplicationForm, ApplicationStatus, FormField, Department } from '@/types/database';
 import { format } from 'date-fns';
+import { getAssetUrl } from '@/lib/utils';
 
 const statusColors: Record<ApplicationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'secondary',
@@ -988,7 +989,8 @@ export default function ApplicationManagement() {
                   <h3 className="font-semibold">Form Responses</h3>
                   <div className="space-y-4">
                     {responses.map((r) => {
-                      const fileUrl = r.file_url || (r.value && (r.value.startsWith('http://') || r.value.startsWith('https://')) && (r.value.includes('/storage/') || r.value.includes('/uploads/')) ? r.value : null);
+                      const rawFileUrl = r.file_url || (r.value && (r.value.startsWith('http://') || r.value.startsWith('https://')) && (r.value.includes('/storage/') || r.value.includes('/uploads/')) ? r.value : null);
+                      const fileUrl = rawFileUrl ? getAssetUrl(rawFileUrl) : null;
                       const isImage = fileUrl && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileUrl);
                       
                       return (

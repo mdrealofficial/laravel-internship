@@ -22,6 +22,7 @@ Route::prefix('api/supabase-compat')->group(function () {
 
 // Storage Fallback Route (handles requests if symbolic link is broken or missing)
 Route::get('storage/{bucket}/{path}', [StorageCompatController::class, 'serve'])->where('path', '.*');
+Route::get('storage-asset/{bucket}/{path}', [StorageCompatController::class, 'serve'])->where('path', '.*');
 
 // Wildcard SPA route
 Route::get('/{any?}', function () {

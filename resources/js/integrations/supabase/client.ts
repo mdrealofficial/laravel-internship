@@ -270,8 +270,8 @@ export const supabase = {
         },
 
         getPublicUrl(path: string) {
-          // Point directly to Laravel's symlinked storage directory
-          const publicUrl = `${window.location.origin}/storage/${bucket}/${path}`;
+          // Point directly to Laravel's storage-asset route to bypass symlink issues on live/Apache servers
+          const publicUrl = `${window.location.origin}/storage-asset/${bucket}/${path}`;
           return { data: { publicUrl } };
         }
       };
