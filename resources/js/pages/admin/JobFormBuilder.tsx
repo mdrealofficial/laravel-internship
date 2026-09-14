@@ -31,10 +31,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Save, ArrowLeft, Eye, Plus, Trash2, Sparkles, Copy, Check, QrCode, AlertCircle, Info, Share2, Award } from 'lucide-react';
+import { Save, ArrowLeft, Eye, Plus, Trash2, Sparkles, Copy, Check, QrCode, AlertCircle, Info, Share2, Award, Bold, Italic, Heading, List, Edit2 } from 'lucide-react';
 import { Department, FormFieldType } from '@/types/database';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { FormattedText } from '@/components/FormattedText';
 import {
   Dialog,
   DialogContent,
@@ -71,6 +72,10 @@ const JOB_PRESETS: Record<string, {
   name: string;
   title: string;
   description: string;
+  responsibilities: string;
+  requirements: string;
+  preferredSkills: string;
+  benefits: string;
   salaryRange: string;
   facilities: string[];
   fields: CanvasField[];
@@ -78,7 +83,11 @@ const JOB_PRESETS: Record<string, {
   'web-developer': {
     name: 'Web Developer',
     title: 'Web Developer',
-    description: 'We are seeking a talented Web Developer to join our growing team. You will be responsible for building, optimizing, and maintaining user-friendly web applications. You should have strong skills in HTML, CSS, JavaScript, and modern frameworks like React.',
+    description: 'We are seeking a talented Web Developer to join our growing team. You will be responsible for building, optimizing, and maintaining user-friendly web applications.',
+    responsibilities: '- Build, optimize, and maintain user-friendly web applications.\n- Collaborate with designers and backend developers.\n- Write clean, maintainable, and testable code.',
+    requirements: '- Bachelor\'s degree in Computer Science or equivalent experience.\n- Strong understanding of HTML, CSS, JavaScript, and React.\n- Familiarity with version control systems (Git).',
+    preferredSkills: '- Experience with Next.js and TailwindCSS.\n- Knowledge of state management libraries (Redux, Zustand).\n- Familiarity with backend integrations.',
+    benefits: '- Competitive salary and performance-based bonuses.\n- Flexible working hours and hybrid options.\n- Ongoing learning opportunities and certifications.',
     salaryRange: 'BDT 45,000 - 70,000',
     facilities: ['Flexible Working Hours', 'Remote Work Friendly', 'Weekly Lunch & Snacks', 'Learning & Development Budget'],
     fields: [
@@ -91,7 +100,11 @@ const JOB_PRESETS: Record<string, {
   'graphic-designer': {
     name: 'Graphic Designer',
     title: 'Graphic Designer',
-    description: 'We are looking for a creative Graphic Designer to craft engaging visual content for marketing, social media, and brand identity. You should be proficient in Photoshop, Illustrator, and Figma, with a strong eye for detail.',
+    description: 'We are looking for a creative Graphic Designer to craft engaging visual content for marketing, social media, and brand identity.',
+    responsibilities: '- Create engaging visual content for marketing, social media, and brand identity.\n- Design layouts for digital ads, landing pages, and newsletters.\n- Maintain brand consistency across all platforms.',
+    requirements: '- Proficient in Adobe Photoshop, Illustrator, and Figma.\n- Strong portfolio demonstrating creative design skills.\n- Good eye for detail, composition, typography, and color theory.',
+    preferredSkills: '- Experience with video editing (Premiere, After Effects).\n- Familiarity with basic HTML/CSS.\n- Experience in a marketing agency environment.',
+    benefits: '- Creative working environment with growth scope.\n- Annual bonus based on performance.\n- Health insurance coverage and paid time off.',
     salaryRange: 'BDT 35,000 - 50,000',
     facilities: ['Creative Working Environment', 'Annual Bonus', 'Health Insurance Coverage', 'Paid Time Off'],
     fields: [
@@ -104,7 +117,11 @@ const JOB_PRESETS: Record<string, {
   'digital-marketer': {
     name: 'Digital Marketer',
     title: 'Digital Marketer',
-    description: 'We are hiring a Digital Marketer to design, execute, and monitor online marketing campaigns. Key duties include managing social media platforms, executing search engine optimization (SEO), and configuring paid ads on Facebook and Google.',
+    description: 'We are hiring a Digital Marketer to design, execute, and monitor online marketing campaigns.',
+    responsibilities: '- Design, execute, and monitor online marketing campaigns.\n- Manage social media platforms (Facebook, Instagram, LinkedIn, YouTube).\n- Implement SEO strategies and manage paid ad campaigns.',
+    requirements: '- Proven experience managing Facebook Ads and Google Ads.\n- Familiarity with SEO tools (Ahrefs, SEMrush, Moz).\n- Excellent copywriting and content creation skills.',
+    preferredSkills: '- Basic video editing and design skills.\n- Analytical mind with data-driven decision making.\n- Experience in B2B or SaaS marketing.',
+    benefits: '- Competitive performance-based bonuses.\n- Home office allowance.\n- Skill development sponsorship.',
     salaryRange: 'BDT 40,000 - 60,000',
     facilities: ['Performance-based Bonuses', 'Home Office Allowance', 'Skill Development Sponsorship', 'Two Festival Bonuses'],
     fields: [
@@ -123,7 +140,16 @@ export default function JobFormBuilder() {
 
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [formResponsibilities, setFormResponsibilities] = useState('');
+  const [formRequirements, setFormRequirements] = useState('');
+  const [formPreferredSkills, setFormPreferredSkills] = useState('');
+  const [formBenefits, setFormBenefits] = useState('');
   const [formSlug, setFormSlug] = useState('');
+  const [jobType, setJobType] = useState('Full-time');
+  const [jobLocation, setJobLocation] = useState('');
+  const [officeTiming, setOfficeTiming] = useState('');
+  const [workingDays, setWorkingDays] = useState('');
+  const [activeTabs, setActiveTabs] = useState<Record<string, 'write' | 'preview'>>({});
   const [departmentId, setDepartmentId] = useState<string>('');
   const [isActive, setIsActive] = useState(true);
   const [isMultiDepartment, setIsMultiDepartment] = useState(false);
@@ -139,6 +165,10 @@ export default function JobFormBuilder() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<CanvasField | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Seeking positions state
+  const [seekingPositions, setSeekingPositions] = useState<string[]>([]);
+  const [availablePositions, setAvailablePositions] = useState<{ id: string; title: string }[]>([]);
 
   // AI Generator Dialog state
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -180,10 +210,16 @@ export default function JobFormBuilder() {
   useEffect(() => {
     fetchDepartments();
     fetchApiKey();
+    fetchAvailablePositions();
     if (isEditing) {
       fetchForm();
     }
   }, [id]);
+
+  const fetchAvailablePositions = async () => {
+    const { data } = await supabase.from('role_titles').select('*').order('title');
+    if (data) setAvailablePositions(data);
+  };
 
   const fetchApiKey = async () => {
     try {
@@ -217,6 +253,14 @@ export default function JobFormBuilder() {
       setFormTitle(form.title);
       setBatchName(form.batch_name || '');
       setFormDescription(form.description || '');
+      setFormResponsibilities(form.responsibilities || '');
+      setFormRequirements(form.requirements || '');
+      setFormPreferredSkills(form.preferred_skills || '');
+      setFormBenefits(form.benefits || '');
+      setJobType(form.job_type || 'Full-time');
+      setJobLocation(form.job_location || '');
+      setOfficeTiming(form.office_timing || '');
+      setWorkingDays(form.working_days || '');
       setFormSlug(form.slug);
       setDepartmentId(form.department_id || '');
       setIsMultiDepartment(form.is_multi_department ?? false);
@@ -226,6 +270,7 @@ export default function JobFormBuilder() {
       setStartDate(form.start_date ? form.start_date.split('T')[0] : '');
       setSalaryRange(form.salary_range || '');
       setFacilities(form.facilities || []);
+      setSeekingPositions(form.seeking_positions || []);
       setAutoScreening(form.auto_screening || {
         enabled: false,
         minScore: 70,
@@ -316,6 +361,14 @@ export default function JobFormBuilder() {
 
     setFormTitle(preset.title);
     setFormDescription(preset.description);
+    setFormResponsibilities(preset.responsibilities || '');
+    setFormRequirements(preset.requirements || '');
+    setFormPreferredSkills(preset.preferredSkills || '');
+    setFormBenefits(preset.benefits || '');
+    setJobType(preset.jobType || 'Full-time');
+    setJobLocation(preset.jobLocation || '');
+    setOfficeTiming(preset.officeTiming || '');
+    setWorkingDays(preset.workingDays || '');
     setSalaryRange(preset.salaryRange);
     setFacilities(preset.facilities);
     setFields(preset.fields);
@@ -382,6 +435,14 @@ export default function JobFormBuilder() {
         title: formTitle,
         batch_name: batchName || null,
         description: formDescription || null,
+        responsibilities: formResponsibilities || null,
+        requirements: formRequirements || null,
+        preferred_skills: formPreferredSkills || null,
+        benefits: formBenefits || null,
+        job_type: jobType || null,
+        job_location: jobLocation || null,
+        office_timing: officeTiming || null,
+        working_days: workingDays || null,
         slug: formSlug,
         department_id: departmentId || null,
         is_multi_department: isMultiDepartment,
@@ -394,6 +455,7 @@ export default function JobFormBuilder() {
         is_paid: false,
         stipend_amount: null,
         facilities: facilities.length > 0 ? facilities : null,
+        seeking_positions: seekingPositions.length > 0 ? seekingPositions : null,
         auto_screening: autoScreening,
         seo_meta: seoMeta,
       };
@@ -445,13 +507,37 @@ export default function JobFormBuilder() {
   };
 
   const shareUrl = `${window.location.origin}/apply/job/${formSlug}`;
-  const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(shareUrl)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(shareUrl)}`;
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     toast.success('Share link copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const insertFormatting = (editorId: string, prefix: string, suffix: string = '') => {
+    const textarea = document.getElementById(editorId) as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selected = text.substring(start, end);
+    const replacement = prefix + selected + suffix;
+
+    const newValue = text.substring(0, start) + replacement + text.substring(end);
+    
+    if (editorId === 'description') setFormDescription(newValue);
+    else if (editorId === 'responsibilities') setFormResponsibilities(newValue);
+    else if (editorId === 'requirements') setFormRequirements(newValue);
+    else if (editorId === 'preferred_skills') setFormPreferredSkills(newValue);
+    else if (editorId === 'benefits') setFormBenefits(newValue);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+    }, 0);
   };
 
   const downloadQrCode = async () => {
@@ -469,6 +555,131 @@ export default function JobFormBuilder() {
     } catch (e) {
       window.open(qrUrl, '_blank');
     }
+  };
+
+  const renderFormattedTextArea = (
+    id: string,
+    label: string,
+    value: string,
+    onChange: (val: string) => void,
+    placeholder: string,
+    rows: number = 4
+  ) => {
+    const isPreview = activeTabs[id] === 'preview';
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor={id} className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{label}</Label>
+          <div className="flex items-center gap-1.5">
+            {id === 'description' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (!geminiApiKey) {
+                    toast.error('Please configure your Gemini API Key in Settings page first.');
+                  } else {
+                    setAiDialogOpen(true);
+                  }
+                }}
+                className="h-6 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 px-1.5 hover:bg-primary/5"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                AI Write
+              </Button>
+            )}
+            <div className="flex rounded-md border border-input p-0.5 bg-muted/40 shadow-sm">
+              <Button
+                type="button"
+                variant={!isPreview ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTabs(prev => ({ ...prev, [id]: 'write' }))}
+                className="h-5 px-2 text-[10px] rounded-sm flex items-center gap-1 font-medium transition-all"
+              >
+                <Edit2 className="h-2.5 w-2.5" />
+                Write
+              </Button>
+              <Button
+                type="button"
+                variant={isPreview ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTabs(prev => ({ ...prev, [id]: 'preview' }))}
+                className="h-5 px-2 text-[10px] rounded-sm flex items-center gap-1 font-medium transition-all"
+              >
+                <Eye className="h-2.5 w-2.5" />
+                Preview
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {!isPreview ? (
+          <div className="rounded-md border border-input bg-background shadow-sm overflow-hidden focus-within:ring-1 focus-within:ring-ring">
+            {/* Formatting Toolbar */}
+            <div className="flex items-center gap-1 bg-muted/20 p-1.5 border-b border-input">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md flex items-center justify-center transition-all"
+                onClick={() => insertFormatting(id, '**', '**')}
+                title="Bold (**text**)"
+              >
+                <Bold className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md flex items-center justify-center transition-all"
+                onClick={() => insertFormatting(id, '*', '*')}
+                title="Italic (*text*)"
+              >
+                <Italic className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md flex items-center justify-center transition-all"
+                onClick={() => insertFormatting(id, '### ')}
+                title="Heading (###)"
+              >
+                <Heading className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-md flex items-center justify-center transition-all"
+                onClick={() => insertFormatting(id, '- ')}
+                title="Bullet List (-)"
+              >
+                <List className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <Textarea
+              id={id}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder}
+              rows={rows}
+              className="text-xs rounded-t-none border-0 focus-visible:ring-0 shadow-none focus-visible:ring-offset-0 focus:outline-none focus:ring-0 min-h-[100px]"
+            />
+          </div>
+        ) : (
+          <div className="text-xs p-4 border border-input rounded-md bg-slate-50/50 dark:bg-zinc-950/50 min-h-[143px] max-h-[300px] overflow-y-auto shadow-inner">
+            {value ? (
+              <FormattedText text={value} />
+            ) : (
+              <span className="text-muted-foreground italic">Nothing to preview. Type something first!</span>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -561,7 +772,7 @@ export default function JobFormBuilder() {
                         />
                       </div>
 
-                      <div className="space-y-2">
+                       <div className="space-y-2">
                         <Label htmlFor="batch" className="text-xs font-semibold">Batch / Department Label</Label>
                         <Input
                           id="batch"
@@ -572,35 +783,87 @@ export default function JobFormBuilder() {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="description" className="text-xs font-semibold">Job Description</Label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              if (!geminiApiKey) {
-                                toast.error('Please configure your Gemini API Key in Settings page first.');
-                              } else {
-                                setAiDialogOpen(true);
-                              }
-                            }}
-                            className="h-6 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 px-1.5 hover:bg-primary/5"
-                          >
-                            <Sparkles className="h-3 w-3" />
-                            AI Write
-                          </Button>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="job-type" className="text-xs font-semibold">Job Type</Label>
+                          <Select value={jobType} onValueChange={setJobType}>
+                            <SelectTrigger id="job-type" className="h-9 text-xs">
+                              <SelectValue placeholder="Select Job Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Full-time">Full-time</SelectItem>
+                              <SelectItem value="Part-time">Part-time</SelectItem>
+                              <SelectItem value="Contract">Contract</SelectItem>
+                              <SelectItem value="Internship">Internship</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <Textarea
-                          id="description"
-                          value={formDescription}
-                          onChange={(e) => setFormDescription(e.target.value)}
-                          placeholder="Brief description of the job role"
-                          rows={4}
-                          className="text-xs"
-                        />
+                        <div className="space-y-2">
+                          <Label htmlFor="job-location" className="text-xs font-semibold">Job Location</Label>
+                          <Input
+                            id="job-location"
+                            value={jobLocation}
+                            onChange={(e) => setJobLocation(e.target.value)}
+                            placeholder="e.g. Dhaka (On-site / Hybrid)"
+                            className="h-9 text-xs"
+                          />
+                        </div>
                       </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="office-timing" className="text-xs font-semibold">Office Timing</Label>
+                          <Input
+                            id="office-timing"
+                            value={officeTiming}
+                            onChange={(e) => setOfficeTiming(e.target.value)}
+                            placeholder="e.g. 9:00 AM - 6:00 PM"
+                            className="h-9 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="working-days" className="text-xs font-semibold">Working Days</Label>
+                          <Input
+                            id="working-days"
+                            value={workingDays}
+                            onChange={(e) => setWorkingDays(e.target.value)}
+                            placeholder="e.g. Sunday - Thursday"
+                            className="h-9 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      {renderFormattedTextArea(
+                        'description',
+                        'Job Description / About the Role',
+                        formDescription,
+                        setFormDescription,
+                        'Brief description of the job role. Supports bold (**text**), italic (*text*), headings (### Heading), and bullet points (- Item).'
+                      )}
+
+                      {renderFormattedTextArea(
+                        'responsibilities',
+                        'Responsibilities',
+                        formResponsibilities,
+                        setFormResponsibilities,
+                        'Key responsibilities of the position. Supports bold, italic, and lists.'
+                      )}
+
+                      {renderFormattedTextArea(
+                        'requirements',
+                        'Requirements',
+                        formRequirements,
+                        setFormRequirements,
+                        'Educational or professional requirements. Supports bold, italic, and lists.'
+                      )}
+
+                      {renderFormattedTextArea(
+                        'preferred_skills',
+                        'Preferred Skills',
+                        formPreferredSkills,
+                        setFormPreferredSkills,
+                        'Skills that are preferred but not mandatory. Supports bold, italic, and lists.'
+                      )}
 
                       <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-zinc-800">
                         <Label htmlFor="multi-dept" className="text-xs font-semibold">Allow Multi-Department</Label>
@@ -663,6 +926,41 @@ export default function JobFormBuilder() {
                           </div>
                         </div>
                       )}
+
+                      {/* SEEKING POSITIONS LIST */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold flex items-center gap-1">
+                          Seeking Positions
+                          <Info className="h-3 w-3 text-muted-foreground" title="Tag positions this form is recruiting for." />
+                        </Label>
+                        <div className="space-y-2 border rounded-md p-3 max-h-40 overflow-y-auto bg-background">
+                          {availablePositions.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No positions configured in Staff & Dept.</p>
+                          ) : (
+                            availablePositions.map((pos) => {
+                              const checked = seekingPositions.includes(pos.title);
+                              return (
+                                <div key={pos.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`pos-${pos.id}`}
+                                    checked={checked}
+                                    onCheckedChange={(isChecked) => {
+                                      if (isChecked) {
+                                        setSeekingPositions([...seekingPositions, pos.title]);
+                                      } else {
+                                        setSeekingPositions(seekingPositions.filter(t => t !== pos.title));
+                                      }
+                                    }}
+                                  />
+                                  <Label htmlFor={`pos-${pos.id}`} className="text-xs cursor-pointer">
+                                    {pos.title}
+                                  </Label>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
 
                       <div className="space-y-2">
                         <Label htmlFor="deadline" className="text-xs font-semibold">Application Deadline</Label>
@@ -748,56 +1046,13 @@ export default function JobFormBuilder() {
                         />
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label className="text-xs font-semibold">Job Benefits / Perks</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={newFacility}
-                            onChange={(e) => setNewFacility(e.target.value)}
-                            placeholder="Add benefit..."
-                            className="h-8 text-xs flex-1"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                if (newFacility.trim()) {
-                                  setFacilities([...facilities, newFacility.trim()]);
-                                  setNewFacility('');
-                                }
-                              }
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              if (newFacility.trim()) {
-                                setFacilities([...facilities, newFacility.trim()]);
-                                setNewFacility('');
-                              }
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        {facilities.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {facilities.map((f, i) => (
-                              <Badge key={i} variant="secondary" className="text-[10px] py-0.5 px-2 flex items-center gap-1">
-                                <span className="truncate max-w-[120px]">{f}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setFacilities(facilities.filter((_, idx) => idx !== i))}
-                                  className="text-muted-foreground hover:text-foreground font-bold"
-                                >
-                                  ×
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      {renderFormattedTextArea(
+                        'benefits',
+                        'Benefits & Perks',
+                        formBenefits,
+                        setFormBenefits,
+                        'Benefits and compensation perks. Supports bold, italic, and lists.'
+                      )}
                     </CardContent>
                   </Card>
 

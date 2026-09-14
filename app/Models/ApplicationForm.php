@@ -9,7 +9,7 @@ class ApplicationForm extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['id', 'department_id', 'is_multi_department', 'allowed_departments', 'title', 'form_type', 'batch_name', 'is_paid', 'stipend_amount', 'salary_range', 'facilities', 'auto_screening', 'seo_meta', 'description', 'slug', 'deadline', 'is_active', 'created_by'];
+    protected $fillable = ['id', 'department_id', 'is_multi_department', 'allowed_departments', 'title', 'form_type', 'job_type', 'job_location', 'office_timing', 'working_days', 'batch_name', 'is_paid', 'stipend_amount', 'salary_range', 'facilities', 'auto_screening', 'seo_meta', 'description', 'responsibilities', 'requirements', 'preferred_skills', 'benefits', 'slug', 'deadline', 'is_active', 'created_by'];
 
     protected $casts = [
         'is_active' => 'boolean',

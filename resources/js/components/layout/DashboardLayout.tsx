@@ -34,24 +34,18 @@ interface DashboardLayoutProps {
 
 const adminNavItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  // Job Recruitment Group
-  { path: '/admin/job-forms', label: 'Job Opportunities', icon: Briefcase },
+  // Recruitment & Forms
+  { path: '/admin/forms', label: 'Forms & Openings', icon: FileEdit },
   { path: '/admin/job-applications', label: 'Job Applications', icon: Inbox },
-  { path: '/admin/job-batch-messaging', label: 'Job Broadcasts', icon: Mail },
-  // Interns Group
-  { path: '/admin/forms', label: 'Evaluation Forms', icon: FileEdit },
-  { path: '/admin/applications', label: 'Evaluation Submissions', icon: ClipboardCheck },
-  { path: '/admin/interns', label: 'Intern Directory', icon: Users },
-  { path: '/admin/batch-messaging', label: 'Intern Broadcasts', icon: Mail },
-  // Admin & Directories
-  { path: '/admin/staff', label: 'Staff Directory', icon: UserCog },
-  { path: '/admin/departments', label: 'Departments', icon: Building2 },
-  { path: '/admin/roles', label: 'Role Titles', icon: Briefcase },
+  { path: '/admin/applications', label: 'Intern Submision', icon: ClipboardCheck },
+  // Interns & Staff
+  { path: '/admin/interns', label: 'Interns', icon: Users },
+  { path: '/admin/staff', label: 'Staff & Dept', icon: UserCog },
+  { path: '/admin/batch-messaging', label: 'Broadcast', icon: Mail },
   { path: '/admin/certificates', label: 'Certificates', icon: Award },
   // Reports & Logs
-  { path: '/admin/reports', label: 'Performance Reports', icon: FileText },
-  { path: '/admin/notification-reports', label: 'Campaign Analytics', icon: BarChart3 },
-  { path: '/admin/notification-logs', label: 'Message Logs', icon: History },
+  { path: '/admin/reports', label: 'Reports', icon: FileText },
+  { path: '/admin/notification-reports', label: 'Analysis and Logs', icon: BarChart3 },
   // Settings
   { path: '/admin/settings', label: 'Settings', icon: Settings },
 ];
@@ -186,7 +180,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           {/* Navigation */}
           <nav className={cn("flex-1 p-4 space-y-2 overflow-y-auto", collapsed && "p-2 space-y-3")}>
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              let isActive = location.pathname === item.path;
+              if (item.path === '/admin/batch-messaging') {
+                isActive = location.pathname === '/admin/batch-messaging' || location.pathname === '/admin/job-batch-messaging';
+              } else if (item.path === '/admin/forms') {
+                isActive = location.pathname === '/admin/forms' || location.pathname === '/admin/job-forms';
+              } else if (item.path === '/admin/staff') {
+                isActive = ['/admin/staff', '/admin/departments', '/admin/roles', '/admin/positions'].includes(location.pathname);
+              } else if (item.path === '/admin/notification-reports') {
+                isActive = location.pathname === '/admin/notification-reports' || location.pathname === '/admin/notification-logs';
+              }
               return <NavItem key={item.path} item={item} isActive={isActive} />;
             })}
           </nav>

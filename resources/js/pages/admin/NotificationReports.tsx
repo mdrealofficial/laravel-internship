@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -25,9 +27,13 @@ import {
   Activity,
   FileText,
   AlertCircle,
-  Percent
+  RefreshCw,
+  ExternalLink,
+  History,
+  Loader2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface NotificationLog {
   id: string;
@@ -65,16 +71,52 @@ interface CampaignSummary {
 }
 
 export default function NotificationReports() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Tab path syncing
+  const getTabFromPath = (path: string) => {
+    if (path.includes('/admin/notification-logs')) return 'logs';
+    return 'analytics';
+  };
+
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
+
+  useEffect(() => {
+    const tab = getTabFromPath(location.pathname);
+    if (tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [location.pathname]);
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val);
+    if (val === 'analytics') {
+      navigate('/admin/notification-reports');
+    } else {
+      navigate('/admin/notification-logs');
+    }
+  };
+
+  // Shared Data States
   const [logs, setLogs] = useState<NotificationLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCampaign, setSelectedCampaign] = useState<CampaignSummary | null>(null);
   const [previewLog, setPreviewLog] = useState<NotificationLog | null>(null);
+
+  // Campaign Analytics States
+  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
+  const [campaignSearchQuery, setCampaignSearchQuery] = useState('');
+  const [selectedCampaign, setSelectedCampaign] = useState<CampaignSummary | null>(null);
   
-  // Recipient filtering tabs
-  const [channelTab, setChannelTab] = useState<'all' | 'email' | 'sms'>('all');
-  const [recipientSearch, setRecipientSearch] = useState('');
+  // Campaign Recipients Breakdown States
+  const [breakdownChannelTab, setBreakdownChannelTab] = useState<'all' | 'email' | 'sms'>('all');
+  const [breakdownSearchQuery, setBreakdownSearchQuery] = useState('');
+
+  // Message Logs Tab States
+  const [logSearchQuery, setLogSearchQuery] = useState('');
+  const [logTypeFilter, setLogTypeFilter] = useState<string>('all');
+  const [logStatusFilter, setLogStatusFilter] = useState<string>('all');
+  const [logCampaignFilter, setLogCampaignFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchLogs();
@@ -99,7 +141,7 @@ export default function NotificationReports() {
       processCampaigns(typedLogs);
     } catch (err: any) {
       console.error('Error fetching logs:', err);
-      toast.error('Failed to load notification reports');
+      toast.error('Failed to load notification logs');
     } finally {
       setLoading(false);
     }
@@ -157,6 +199,16 @@ export default function NotificationReports() {
     setCampaigns(summaries);
   };
 
+  // Helper: Get unique campaigns from logs for filtering
+  const getUniqueCampaigns = () => {
+    const campaignsList = logs
+      .map(l => l.campaign_name)
+      .filter((c): c is string => !!c);
+    return Array.from(new Set(campaignsList)).sort();
+  };
+
+  const uniqueCampaigns = getUniqueCampaigns();
+
   // Overall statistics
   const totalSentCount = logs.length;
   const totalEmailsCount = logs.filter(l => l.notification_type === 'email').length;
@@ -175,9 +227,54 @@ export default function NotificationReports() {
   const overallClickRate = totalEmailsCount > 0 ? Math.round((totalClicked / totalEmailsCount) * 100) : 0;
   const overallDeliveryRate = totalSentCount > 0 ? Math.round((totalDelivered / totalSentCount) * 100) : 0;
 
+  // Filter campaigns
   const filteredCampaigns = campaigns.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    c.name.toLowerCase().includes(campaignSearchQuery.toLowerCase())
   );
+
+  // Filter detailed breakdown logs inside a campaign
+  const getFilteredBreakdownLogs = () => {
+    if (!selectedCampaign) return [];
+    return selectedCampaign.logs.filter(log => {
+      const channelMatch = breakdownChannelTab === 'all' || log.notification_type === breakdownChannelTab;
+      const name = log.metadata?.recipient_name || '';
+      const recipient = log.recipient || '';
+      const searchMatch = 
+        breakdownSearchQuery.trim() === '' ||
+        name.toLowerCase().includes(breakdownSearchQuery.toLowerCase()) ||
+        recipient.toLowerCase().includes(breakdownSearchQuery.toLowerCase());
+      return channelMatch && searchMatch;
+    });
+  };
+
+  const currentBreakdownLogs = getFilteredBreakdownLogs();
+
+  // Filter Message Logs Tab list
+  const filteredMessageLogs = logs.filter(log => {
+    const recipientMatch = log.recipient.toLowerCase().includes(logSearchQuery.toLowerCase());
+    const nameMatch = (log.metadata?.recipient_name || '').toLowerCase().includes(logSearchQuery.toLowerCase());
+    const subjectMatch = (log.subject || '').toLowerCase().includes(logSearchQuery.toLowerCase());
+    const searchMatch = recipientMatch || nameMatch || subjectMatch;
+
+    const typeMatch = logTypeFilter === 'all' || log.notification_type === logTypeFilter;
+    
+    let statusMatch = true;
+    if (logStatusFilter !== 'all') {
+      const isDelivered = log.status === 'sent' || log.status === 'delivered';
+      if (logStatusFilter === 'delivered') {
+        statusMatch = isDelivered;
+      } else if (logStatusFilter === 'failed') {
+        statusMatch = !isDelivered;
+      }
+    }
+
+    const campaignMatch = 
+      logCampaignFilter === 'all' || 
+      log.campaign_name === logCampaignFilter ||
+      (logCampaignFilter === 'none' && !log.campaign_name);
+
+    return searchMatch && typeMatch && statusMatch && campaignMatch;
+  });
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A';
@@ -190,32 +287,13 @@ export default function NotificationReports() {
     });
   };
 
-  // Filter campaign logs for details view based on tab and recipient name/info search
-  const getFilteredRecipientLogs = () => {
-    if (!selectedCampaign) return [];
-    return selectedCampaign.logs.filter(log => {
-      const channelMatch = channelTab === 'all' || log.notification_type === channelTab;
-      
-      const name = log.metadata?.recipient_name || '';
-      const recipient = log.recipient || '';
-      const searchMatch = 
-        recipientSearch.trim() === '' ||
-        name.toLowerCase().includes(recipientSearch.toLowerCase()) ||
-        recipient.toLowerCase().includes(recipientSearch.toLowerCase());
-
-      return channelMatch && searchMatch;
-    });
-  };
-
-  const currentRecipientLogs = getFilteredRecipientLogs();
-
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-7xl mx-auto animate-fade-in relative">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none -z-10 rounded-xl" />
 
         {selectedCampaign ? (
-          // Campaign Detail View
+          // Campaign Detail View (only shown if a campaign is selected in Analytics tab)
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -224,8 +302,8 @@ export default function NotificationReports() {
                   size="sm"
                   onClick={() => {
                     setSelectedCampaign(null);
-                    setChannelTab('all');
-                    setRecipientSearch('');
+                    setBreakdownChannelTab('all');
+                    setBreakdownSearchQuery('');
                   }}
                   className="flex items-center gap-1.5 border-slate-200"
                 >
@@ -249,10 +327,10 @@ export default function NotificationReports() {
               </div>
             </div>
 
-            {/* Campaign Summary & Dual Channel Reports */}
+            {/* Campaign Summary Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* Overall Stat Column */}
+              {/* Summary */}
               <div className="lg:col-span-1 space-y-6">
                 <Card className="border border-slate-200/80 shadow-sm bg-white overflow-hidden h-full">
                   <div className="bg-slate-50/50 border-b border-slate-100 p-4">
@@ -302,7 +380,7 @@ export default function NotificationReports() {
                 </Card>
               </div>
 
-              {/* Email Performance Column */}
+              {/* Email Performance */}
               <div className="lg:col-span-1">
                 <Card className="border border-slate-200/80 shadow-sm bg-white h-full">
                   <div className="bg-slate-50/50 border-b border-slate-100 p-4 flex items-center justify-between">
@@ -366,7 +444,7 @@ export default function NotificationReports() {
                 </Card>
               </div>
 
-              {/* SMS Performance Column */}
+              {/* SMS Performance */}
               <div className="lg:col-span-1">
                 <Card className="border border-slate-200/80 shadow-sm bg-white h-full">
                   <div className="bg-slate-50/50 border-b border-slate-100 p-4 flex items-center justify-between">
@@ -421,10 +499,9 @@ export default function NotificationReports() {
                   </CardContent>
                 </Card>
               </div>
-
             </div>
 
-            {/* Recipient breakdown list with channel tabs */}
+            {/* Campaign Breakdown Table */}
             <Card className="border border-slate-200 shadow-sm bg-white">
               <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -432,35 +509,33 @@ export default function NotificationReports() {
                   <CardDescription>Click tabs below to see which contacts received SMS or Emails.</CardDescription>
                 </div>
                 
-                {/* Search & Filters */}
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative w-full sm:w-60">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     <Input 
                       placeholder="Search recipient name..." 
                       className="pl-9 h-9 text-sm" 
-                      value={recipientSearch}
-                      onChange={(e) => setRecipientSearch(e.target.value)}
+                      value={breakdownSearchQuery}
+                      onChange={(e) => setBreakdownSearchQuery(e.target.value)}
                     />
                   </div>
 
-                  {/* Channel Filtering Tabs */}
                   <div className="flex bg-slate-100 p-0.5 rounded-lg border text-sm">
                     <button 
-                      onClick={() => setChannelTab('all')}
-                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${channelTab === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                      onClick={() => setBreakdownChannelTab('all')}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${breakdownChannelTab === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                     >
                       All ({selectedCampaign.totalSent})
                     </button>
                     <button 
-                      onClick={() => setChannelTab('email')}
-                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${channelTab === 'email' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                      onClick={() => setBreakdownChannelTab('email')}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${breakdownChannelTab === 'email' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                     >
                       Emails ({selectedCampaign.emailsCount})
                     </button>
                     <button 
-                      onClick={() => setChannelTab('sms')}
-                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${channelTab === 'sms' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                      onClick={() => setBreakdownChannelTab('sms')}
+                      className={`px-3 py-1.5 rounded-md font-medium transition-colors ${breakdownChannelTab === 'sms' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                     >
                       SMS ({selectedCampaign.smsCount})
                     </button>
@@ -468,11 +543,10 @@ export default function NotificationReports() {
                 </div>
               </CardHeader>
               <CardContent>
-                {currentRecipientLogs.length === 0 ? (
+                {currentBreakdownLogs.length === 0 ? (
                   <div className="text-center py-12 border rounded-lg border-dashed border-slate-200">
                     <User className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                     <p className="text-sm font-medium text-slate-600">No matching contacts found</p>
-                    <p className="text-xs text-slate-400 mt-1">Try adjusting your filters or search terms.</p>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
@@ -489,7 +563,7 @@ export default function NotificationReports() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentRecipientLogs.map((log) => {
+                        {currentBreakdownLogs.map((log) => {
                           const name = log.metadata?.recipient_name || '—';
                           const isEmail = log.notification_type === 'email';
                           const isDelivered = log.status === 'sent' || log.status === 'delivered';
@@ -585,173 +659,371 @@ export default function NotificationReports() {
             </Card>
           </div>
         ) : (
-          // Campaigns Overview View
+          // Main Tabbed Navigation View (Campaigns List or Full Message Audit Logs)
           <div className="space-y-6">
-            <div className="border-b pb-4">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-800">Notification Reports</h1>
-              <p className="text-slate-500 mt-1">Analytics, open rates, and click tracking metrics grouped by campaign.</p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-4 gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-800">Campaigns & Logs</h1>
+                <p className="text-slate-500 mt-1">Analytics, open rates, and full audit logs of all sent messages.</p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={fetchLogs}
+                disabled={loading}
+                className="flex items-center gap-1.5 self-start md:self-auto border-slate-200"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh Logs
+              </Button>
             </div>
 
-            {/* Overall Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="border border-slate-200/80 shadow-sm bg-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Sent</p>
-                      <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{totalSentCount}</h3>
-                    </div>
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                      <Activity size={18} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-3 font-medium">
-                    {totalEmailsCount} Emails | {totalSMSCount} SMS
-                  </p>
-                </CardContent>
-              </Card>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
+              <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100 p-1 rounded-xl">
+                <TabsTrigger value="analytics" className="rounded-lg py-2 font-medium">Campaign Analytics</TabsTrigger>
+                <TabsTrigger value="logs" className="rounded-lg py-2 font-medium">Message Logs</TabsTrigger>
+              </TabsList>
 
-              <Card className="border border-slate-200/80 shadow-sm bg-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Delivery Rate</p>
-                      <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{overallDeliveryRate}%</h3>
-                    </div>
-                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                      <CheckCircle size={18} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-3 font-medium flex items-center gap-1.5">
-                    <span>Email: {Math.round((totalEmailDelivered / Math.max(1, totalEmailsCount)) * 100)}%</span>
-                    <span className="text-slate-300">|</span>
-                    <span>SMS: {Math.round((totalSMSDelivered / Math.max(1, totalSMSCount)) * 100)}%</span>
-                  </p>
-                </CardContent>
-              </Card>
+              {/* CAMPAIGN ANALYTICS TAB */}
+              <TabsContent value="analytics" className="mt-0 focus-visible:outline-none space-y-6 animate-fade-in">
+                {/* Overall Stat Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="border border-slate-200/80 shadow-sm bg-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Sent</p>
+                          <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{totalSentCount}</h3>
+                        </div>
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                          <Activity size={18} />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-3 font-medium">
+                        {totalEmailsCount} Emails | {totalSMSCount} SMS
+                      </p>
+                    </CardContent>
+                  </Card>
 
-              <Card className="border border-slate-200/80 shadow-sm bg-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Open Rate</p>
-                      <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{overallOpenRate}%</h3>
-                    </div>
-                    <div className="p-2 bg-sky-50 text-sky-600 rounded-lg">
-                      <Eye size={18} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-3 font-medium">
-                    {totalOpened} total email opens recorded
-                  </p>
-                </CardContent>
-              </Card>
+                  <Card className="border border-slate-200/80 shadow-sm bg-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Delivery Rate</p>
+                          <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{overallDeliveryRate}%</h3>
+                        </div>
+                        <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                          <CheckCircle size={18} />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-3 font-medium flex items-center gap-1.5">
+                        <span>Email: {Math.round((totalEmailDelivered / Math.max(1, totalEmailsCount)) * 100)}%</span>
+                        <span className="text-slate-300">|</span>
+                        <span>SMS: {Math.round((totalSMSDelivered / Math.max(1, totalSMSCount)) * 100)}%</span>
+                      </p>
+                    </CardContent>
+                  </Card>
 
-              <Card className="border border-slate-200/80 shadow-sm bg-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Click Rate</p>
-                      <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{overallClickRate}%</h3>
-                    </div>
-                    <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
-                      <MousePointerClick size={18} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-3 font-medium">
-                    {totalClicked} total email clicks recorded
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+                  <Card className="border border-slate-200/80 shadow-sm bg-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Open Rate</p>
+                          <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{overallOpenRate}%</h3>
+                        </div>
+                        <div className="p-2 bg-sky-50 text-sky-600 rounded-lg">
+                          <Eye size={18} />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-3 font-medium">
+                        {totalOpened} total email opens recorded
+                      </p>
+                    </CardContent>
+                  </Card>
 
-            {/* Campaign Selector / List */}
-            <Card className="border border-slate-200 shadow-sm bg-white">
-              <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-lg font-bold text-slate-800">Campaigns List</CardTitle>
-                  <CardDescription>Select a campaign to drill down into delivery details.</CardDescription>
+                  <Card className="border border-slate-200/80 shadow-sm bg-white">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Click Rate</p>
+                          <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{overallClickRate}%</h3>
+                        </div>
+                        <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                          <MousePointerClick size={18} />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-3 font-medium">
+                        {totalClicked} total email clicks recorded
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
-                <div className="relative w-full md:w-72">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input 
-                    placeholder="Search campaigns..." 
-                    className="pl-9 h-9" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <TrendingUp className="h-6 w-6 animate-pulse text-indigo-500 mr-2" />
-                    <span className="text-sm text-slate-500">Processing campaign metrics...</span>
-                  </div>
-                ) : filteredCampaigns.length === 0 ? (
-                  <div className="text-center py-12 border rounded-lg border-dashed border-slate-200">
-                    <BarChart3 className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-slate-600">No campaigns found</p>
-                    <p className="text-xs text-slate-400 mt-1">Start broadcasting messages to create email and SMS campaigns.</p>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-slate-200 overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-slate-50/70">
-                        <TableRow>
-                          <TableHead>Campaign Name</TableHead>
-                          <TableHead>Last Broadcast</TableHead>
-                          <TableHead className="text-center">Total Sent</TableHead>
-                          <TableHead className="text-center">Delivered</TableHead>
-                          <TableHead className="text-center">Channels</TableHead>
-                          <TableHead className="text-center">Open Rate</TableHead>
-                          <TableHead className="text-center">Click Rate</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredCampaigns.map((camp) => {
-                          const openRate = camp.emailsCount > 0 ? Math.round((camp.openedCount / camp.emailsCount) * 100) : 0;
-                          const clickRate = camp.emailsCount > 0 ? Math.round((camp.clickedCount / camp.emailsCount) * 100) : 0;
-                          const deliveryRate = camp.totalSent > 0 ? Math.round((camp.deliveredCount / camp.totalSent) * 100) : 0;
 
-                          return (
-                            <TableRow key={camp.name} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => setSelectedCampaign(camp)}>
-                              <TableCell className="font-semibold text-slate-800">{camp.name}</TableCell>
-                              <TableCell className="text-slate-500 text-sm">{formatDate(camp.sentAt)}</TableCell>
-                              <TableCell className="text-center font-bold text-slate-700">{camp.totalSent}</TableCell>
-                              <TableCell className="text-center">
-                                <Badge className={deliveryRate > 90 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"}>
-                                  {deliveryRate}%
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-2 text-slate-500 text-xs">
-                                  {camp.emailsCount > 0 && <span className="flex items-center gap-0.5"><Mail size={12} /> {camp.emailsCount}</span>}
-                                  {camp.smsCount > 0 && <span className="flex items-center gap-0.5"><MessageSquare size={12} /> {camp.smsCount}</span>}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center font-semibold text-sky-700">{camp.emailsCount > 0 ? `${openRate}%` : '—'}</TableCell>
-                              <TableCell className="text-center font-semibold text-amber-700">{camp.emailsCount > 0 ? `${clickRate}%` : '—'}</TableCell>
-                              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => setSelectedCampaign(camp)}
-                                  className="h-8 text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 ml-auto"
-                                >
-                                  Details <ChevronRight size={14} />
-                                </Button>
-                              </TableCell>
+                {/* Campaigns List */}
+                <Card className="border border-slate-200 shadow-sm bg-white">
+                  <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-lg font-bold text-slate-800">Campaigns List</CardTitle>
+                      <CardDescription>Select a campaign to drill down into delivery details.</CardDescription>
+                    </div>
+                    <div className="relative w-full md:w-72">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input 
+                        placeholder="Search campaigns..." 
+                        className="pl-9 h-9" 
+                        value={campaignSearchQuery}
+                        onChange={(e) => setCampaignSearchQuery(e.target.value)}
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin text-indigo-600 mr-2" />
+                        <span className="text-sm text-slate-500 font-medium">Processing campaign metrics...</span>
+                      </div>
+                    ) : filteredCampaigns.length === 0 ? (
+                      <div className="text-center py-12 border rounded-lg border-dashed border-slate-200">
+                        <BarChart3 className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-slate-600">No campaigns found</p>
+                        <p className="text-xs text-slate-400 mt-1">Start broadcasting messages to create email and SMS campaigns.</p>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-slate-200 overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-slate-50/70">
+                            <TableRow>
+                              <TableHead>Campaign Name</TableHead>
+                              <TableHead>Last Broadcast</TableHead>
+                              <TableHead className="text-center">Total Sent</TableHead>
+                              <TableHead className="text-center">Delivered</TableHead>
+                              <TableHead className="text-center">Channels</TableHead>
+                              <TableHead className="text-center">Open Rate</TableHead>
+                              <TableHead className="text-center">Click Rate</TableHead>
+                              <TableHead className="text-right">Action</TableHead>
                             </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredCampaigns.map((camp) => {
+                              const openRate = camp.emailsCount > 0 ? Math.round((camp.openedCount / camp.emailsCount) * 100) : 0;
+                              const clickRate = camp.emailsCount > 0 ? Math.round((camp.clickedCount / camp.emailsCount) * 100) : 0;
+                              const deliveryRate = camp.totalSent > 0 ? Math.round((camp.deliveredCount / camp.totalSent) * 100) : 0;
+
+                              return (
+                                <TableRow key={camp.name} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => setSelectedCampaign(camp)}>
+                                  <TableCell className="font-semibold text-slate-800">{camp.name}</TableCell>
+                                  <TableCell className="text-slate-500 text-sm">{formatDate(camp.sentAt)}</TableCell>
+                                  <TableCell className="text-center font-bold text-slate-700">{camp.totalSent}</TableCell>
+                                  <TableCell className="text-center">
+                                    <Badge className={deliveryRate > 90 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"}>
+                                      {deliveryRate}%
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-2 text-slate-500 text-xs">
+                                      {camp.emailsCount > 0 && <span className="flex items-center gap-0.5"><Mail size={12} /> {camp.emailsCount}</span>}
+                                      {camp.smsCount > 0 && <span className="flex items-center gap-0.5"><MessageSquare size={12} /> {camp.smsCount}</span>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-center font-semibold text-sky-700">{camp.emailsCount > 0 ? `${openRate}%` : '—'}</TableCell>
+                                  <TableCell className="text-center font-semibold text-amber-700">{camp.emailsCount > 0 ? `${clickRate}%` : '—'}</TableCell>
+                                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => setSelectedCampaign(camp)}
+                                      className="h-8 text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 ml-auto"
+                                    >
+                                      Details <ChevronRight size={14} />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* MESSAGE AUDIT LOGS TAB */}
+              <TabsContent value="logs" className="mt-0 focus-visible:outline-none space-y-6 animate-fade-in">
+                {/* Filters Panel */}
+                <Card className="border border-slate-200 shadow-sm bg-white">
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="logSearch" className="text-slate-600 font-medium">Search Recipient</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                          <Input 
+                            id="logSearch"
+                            placeholder="Search by name, email or phone..." 
+                            className="pl-9" 
+                            value={logSearchQuery}
+                            onChange={(e) => setLogSearchQuery(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-slate-600 font-medium">Channel Type</Label>
+                        <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All Channels" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Channels</SelectItem>
+                            <SelectItem value="email">Email Only</SelectItem>
+                            <SelectItem value="sms">SMS Only</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-slate-600 font-medium">Delivery Status</Label>
+                        <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All Statuses" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="delivered">Delivered Successfully</SelectItem>
+                            <SelectItem value="failed">Failed / Undelivered</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-slate-600 font-medium">Campaign</Label>
+                        <Select value={logCampaignFilter} onValueChange={setLogCampaignFilter}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All Campaigns" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Campaigns</SelectItem>
+                            <SelectItem value="none">Direct (No Campaign)</SelectItem>
+                            {uniqueCampaigns.map(camp => (
+                              <SelectItem key={camp} value={camp}>{camp}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Audit Logs Table */}
+                <Card className="border border-slate-200 shadow-sm bg-white">
+                  <CardContent className="p-0">
+                    {loading ? (
+                      <div className="flex justify-center items-center py-24">
+                        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mr-2" />
+                        <span className="text-sm text-slate-500 font-medium">Loading log entries...</span>
+                      </div>
+                    ) : filteredMessageLogs.length === 0 ? (
+                      <div className="text-center py-20">
+                        <History className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-base font-semibold text-slate-600">No log entries found</p>
+                        <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or search terms.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader className="bg-slate-50/70">
+                            <TableRow>
+                              <TableHead className="pl-6">Recipient Name</TableHead>
+                              <TableHead>Contact Info</TableHead>
+                              <TableHead>Channel</TableHead>
+                              <TableHead>Campaign</TableHead>
+                              <TableHead>Date & Time</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Opens / Clicks</TableHead>
+                              <TableHead className="text-right pr-6">Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredMessageLogs.map((log) => {
+                              const name = log.metadata?.recipient_name || '—';
+                              const isEmail = log.notification_type === 'email';
+                              const isDelivered = log.status === 'sent' || log.status === 'delivered';
+                              
+                              return (
+                                <TableRow key={log.id} className="hover:bg-slate-50/50">
+                                  <TableCell className="pl-6 font-semibold text-slate-800">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-semibold text-xs">
+                                        {name !== '—' ? name.charAt(0).toUpperCase() : <User size={14} />}
+                                      </div>
+                                      {name}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm text-slate-600">{log.recipient}</TableCell>
+                                  <TableCell>
+                                    {isEmail ? (
+                                      <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-100 flex items-center gap-1 w-fit">
+                                        <Mail size={12} /> Email
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="bg-violet-50 text-violet-700 border-violet-100 flex items-center gap-1 w-fit">
+                                        <MessageSquare size={12} /> SMS
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-slate-500 font-medium max-w-[140px] truncate">
+                                    {log.campaign_name || <span className="text-slate-400 italic text-xs">Direct</span>}
+                                  </TableCell>
+                                  <TableCell className="text-slate-500 text-sm font-medium">{formatDate(log.sent_at)}</TableCell>
+                                  <TableCell>
+                                    {isDelivered ? (
+                                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-medium">Delivered</Badge>
+                                    ) : (
+                                      <div className="space-y-0.5">
+                                        <Badge className="bg-red-50 text-red-700 border-red-100 font-medium">Failed</Badge>
+                                        {log.error_message && (
+                                          <p className="text-[10px] text-red-500 max-w-[150px] truncate" title={log.error_message}>{log.error_message}</p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {isEmail ? (
+                                      <div className="flex gap-2">
+                                        <Badge className={log.opened ? "bg-sky-50 text-sky-700 border-sky-100 font-medium" : "bg-slate-50 text-slate-400 border-slate-200"}>
+                                          {log.opened ? 'Opened' : 'Unopened'}
+                                        </Badge>
+                                        {log.clicked && (
+                                          <Badge className="bg-amber-50 text-amber-700 border-amber-100 font-medium">
+                                            Clicked
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-slate-300">—</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right pr-6">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => setPreviewLog(log)}
+                                      className="h-8 text-indigo-600 hover:text-indigo-800"
+                                    >
+                                      Inspect
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
 
@@ -761,41 +1033,42 @@ export default function NotificationReports() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="text-indigo-600" size={20} />
-                Message Content Details
+                Notification Inspector
               </DialogTitle>
               <DialogDescription>
-                Auditing message payload dispatched to {previewLog?.recipient}.
+                Detailed audit and payload review for notification dispatch event.
               </DialogDescription>
             </DialogHeader>
             {previewLog && (
               <div className="space-y-4 pt-2">
                 <div className="grid grid-cols-2 gap-4 text-sm border-b pb-3 text-slate-600">
                   <div>
-                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Recipient Contact</Label>
-                    <p className="mt-1 font-mono">{previewLog.recipient}</p>
+                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Recipient Name / Contact</Label>
+                    <p className="mt-1 font-semibold text-slate-700">{previewLog.metadata?.recipient_name || '—'}</p>
+                    <p className="font-mono text-xs mt-0.5 text-slate-500">{previewLog.recipient}</p>
                   </div>
                   <div>
-                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Sent At</Label>
+                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Dispatched Time</Label>
                     <p className="mt-1 font-mono">{formatDate(previewLog.sent_at)}</p>
                   </div>
                   <div>
-                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Channel & Key</Label>
-                    <p className="mt-1 flex items-center gap-1.5">
-                      <Badge className="bg-slate-100 text-slate-800 border-none capitalize">{previewLog.notification_type}</Badge>
-                      <span className="font-mono text-xs text-slate-400">[{previewLog.template_key}]</span>
+                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Campaign & Template</Label>
+                    <p className="mt-1">
+                      <Badge className="bg-slate-100 text-slate-800 border-none capitalize font-medium">{previewLog.campaign_name || 'Direct / Transactional'}</Badge>
+                      <span className="font-mono text-xs text-slate-400 block mt-1">Key: {previewLog.template_key}</span>
                     </p>
                   </div>
                   <div>
-                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Browser WebView</Label>
+                    <Label className="font-semibold text-slate-800 text-xs uppercase tracking-wider">Browser WebView URL</Label>
                     <p className="mt-1">
                       {previewLog.notification_type === 'email' ? (
                         <a 
-                          href={`/api/mail-track/webview/${previewLog.id}`} 
+                           href={`/api/mail-track/webview/${previewLog.id}`} 
                           target="_blank" 
                           rel="noreferrer"
                           className="text-indigo-600 hover:text-indigo-800 underline text-xs font-semibold flex items-center gap-1.5"
                         >
-                          View Email WebView
+                          Open Web Version <ExternalLink size={12} />
                         </a>
                       ) : 'N/A (SMS)'}
                     </p>
@@ -810,7 +1083,7 @@ export default function NotificationReports() {
                 )}
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wider font-semibold text-slate-700">Message Body</Label>
+                  <Label className="text-xs uppercase tracking-wider font-semibold text-slate-700">Compiled Body Content</Label>
                   {previewLog.notification_type === 'email' ? (
                     <div className="border rounded-lg overflow-hidden bg-slate-50">
                       <div className="bg-slate-100 px-3 py-1.5 text-[10px] text-slate-400 font-mono border-b">IFRAME SANDBOX PREVIEW</div>
@@ -827,6 +1100,13 @@ export default function NotificationReports() {
                     </div>
                   )}
                 </div>
+
+                {previewLog.error_message && (
+                  <div className="space-y-1.5 p-3 bg-red-50/50 border border-red-100 rounded-lg">
+                    <Label className="text-xs uppercase tracking-wider font-semibold text-red-800">Dispatch Error log</Label>
+                    <p className="text-xs font-mono text-red-600 mt-1 leading-relaxed">{previewLog.error_message}</p>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

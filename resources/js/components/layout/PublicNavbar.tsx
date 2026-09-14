@@ -38,6 +38,7 @@ interface MenuItem {
 
 export function PublicNavbar() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [companyName, setCompanyName] = useState(() => {
     return (window as any).__SITE_SETTINGS__?.companyName || 'DIGI5 LTD';
   });
@@ -92,7 +93,7 @@ export function PublicNavbar() {
 
   return (
     <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-      <div className="mx-auto max-w-6xl px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-y-3 gap-x-4">
+      <div className="mx-auto max-w-6xl px-4 py-3 sm:py-4 flex items-center justify-between gap-x-4">
         <Link to="/" className="flex items-center gap-3">
           {companyLogoUrl ? (
             <img
@@ -110,11 +111,12 @@ export function PublicNavbar() {
           </span>
         </Link>
         
-        <nav className="flex flex-wrap items-center gap-1.5 sm:gap-3 md:gap-6">
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-2 md:gap-4 lg:gap-6">
           {menuItems.map((item) => {
             const isExternal = item.is_external;
+            const linkClass = "flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-indigo-600 transition px-2.5 py-1.5 rounded-lg hover:bg-slate-50";
             
-            // Render normal anchor for external links or router Link for internal links
             if (isExternal) {
               return (
                 <a
@@ -122,11 +124,10 @@ export function PublicNavbar() {
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-indigo-600 transition px-2.5 py-1.5 rounded-lg hover:bg-slate-50"
+                  className={linkClass}
                 >
                   <LucideIcon name={item.icon} className="h-4 w-4" />
-                  <span className="hidden md:inline">{item.label}</span>
-                  <span className="md:hidden text-xs">{item.label}</span>
+                  <span>{item.label}</span>
                 </a>
               );
             }
@@ -135,16 +136,68 @@ export function PublicNavbar() {
               <Link
                 key={item.id}
                 to={item.url}
-                className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-indigo-600 transition px-2.5 py-1.5 rounded-lg hover:bg-slate-50"
+                className={linkClass}
               >
                 <LucideIcon name={item.icon} className="h-4 w-4" />
-                <span className="hidden md:inline">{item.label}</span>
-                <span className="md:hidden text-xs">{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
+
+        {/* Mobile Hamburger Toggle */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="flex md:hidden items-center justify-center p-2 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-slate-50 transition-colors"
+          aria-label="Toggle mobile menu"
+        >
+          {isMenuOpen ? (
+            <Icons.X className="h-6 w-6" />
+          ) : (
+            <Icons.Menu className="h-6 w-6" />
+          )}
+        </button>
       </div>
+
+      {/* Mobile Expandable Menu Panel */}
+      {isMenuOpen && (
+        <div className="md:hidden border-t border-slate-100 bg-white px-4 py-3 shadow-inner animate-fade-in">
+          <nav className="flex flex-col gap-1">
+            {menuItems.map((item) => {
+              const isExternal = item.is_external;
+              const linkClass = "flex items-center gap-2.5 text-sm font-medium text-slate-600 hover:text-indigo-600 transition px-3 py-2 rounded-lg hover:bg-slate-50";
+
+              if (isExternal) {
+                return (
+                  <a
+                    key={item.id}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={linkClass}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <LucideIcon name={item.icon} className="h-4 w-4 text-slate-500" />
+                    <span>{item.label}</span>
+                  </a>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.id}
+                  to={item.url}
+                  className={linkClass}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <LucideIcon name={item.icon} className="h-4 w-4 text-slate-500" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

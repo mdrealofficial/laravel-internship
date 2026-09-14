@@ -834,87 +834,110 @@ class EdgeFunctionCompatController extends Controller
     }
 
     private function buildEmailBody($body, $to, $subject, $unsubscribeEnabled, $unsubscribeUrl, $logId = null) {
+        if (!str_contains($body, '<html>') && !str_contains($body, '<html ')) {
+            $hasHtmlTags = preg_match('/<(?:p|div|br|span|table|tr|td|h[1-6]|a|b|i|strong|em|hr|img|ul|ol|li|html|body|head|style|meta)[\s>\/]/i', $body);
+            if (!$hasHtmlTags) {
+                $body = nl2br($body);
+            }
+        }
+
         $footerSettings = \Illuminate\Support\Facades\DB::table('site_settings')
             ->whereIn('setting_key', [
                 'footer_title', 'footer_subtitle', 'footer_website_url', 'footer_website_text',
                 'footer_address', 'footer_copyright', 'footer_terms_url', 'footer_privacy_url',
                 'footer_contact_url', 'footer_instagram_url', 'footer_facebook_url', 'footer_twitter_url',
-                'footer_youtube_url', 'footer_tiktok_url', 'footer_linkedin_url', 'company_logo_url', 'company_name'
+                'footer_youtube_url', 'footer_tiktok_url', 'footer_linkedin_url', 'company_logo_url', 'company_name',
+                'email_header', 'email_footer'
             ])
             ->pluck('setting_value', 'setting_key')
             ->all();
         
         $companyName = $footerSettings['company_name'] ?? 'DIGI5 LTD';
         $logoUrl = $footerSettings['company_logo_url'] ?? null;
-        
-        // Construct Social Icons
-        $socialIconsHtml = '';
-        $socialPlatforms = [
-            'instagram' => ['url_key' => 'footer_instagram_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/instagram-new.png'],
-            'facebook' => ['url_key' => 'footer_facebook_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/facebook-new.png'],
-            'twitter' => ['url_key' => 'footer_twitter_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/twitter.png'],
-            'youtube' => ['url_key' => 'footer_youtube_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/youtube-play.png'],
-            'tiktok' => ['url_key' => 'footer_tiktok_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/tiktok.png'],
-            'linkedin' => ['url_key' => 'footer_linkedin_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/linkedin--v1.png'],
-        ];
-        
-        foreach ($socialPlatforms as $platform => $info) {
-            $url = $footerSettings[$info['url_key']] ?? null;
-            if (!empty($url)) {
-                $socialIconsHtml .= '<a href="' . htmlspecialchars($url) . '" style="display: inline-block; margin: 0 8px; text-decoration: none;" target="_blank"><img src="' . $info['icon'] . '" width="24" height="24" style="vertical-align: middle; border: 0;" alt="' . ucfirst($platform) . '"></a>';
+
+        // Custom Email Header from settings
+        $headerHtml = $footerSettings['email_header'] ?? '';
+        if (empty($headerHtml)) {
+            if ($logoUrl) {
+                $logoAbsoluteUrl = str_starts_with($logoUrl, 'http') ? $logoUrl : url($logoUrl);
+                $headerHtml = '<div style="text-align: center; padding: 24px 0; border-bottom: 1px solid #e5e7eb;"><img src="' . htmlspecialchars($logoAbsoluteUrl) . '" style="max-height: 48px; width: auto;" alt="' . htmlspecialchars($companyName) . '"></div>';
+            } else {
+                $headerHtml = '<div style="text-align: center; padding: 24px 0; border-bottom: 1px solid #e5e7eb;"><h2 style="margin: 0; color: #111827; font-size: 20px; font-weight: 600;">' . htmlspecialchars($companyName) . '</h2></div>';
             }
         }
-        
-        // Construct Unsubscribe text
-        $unsubscribeHtml = '';
-        if ($unsubscribeEnabled) {
-            $unsubscribeHtml = '<p style="margin: 16px 0; font-size: 13px; color: #4b5563;">If you no longer wish to receive commercial emails from ' . htmlspecialchars($companyName) . ', you can <a href="' . htmlspecialchars($unsubscribeUrl) . '" style="color: #4b5563; text-decoration: underline;" target="_blank">Unsubscribe</a>.</p>';
+
+        // Custom Email Footer from settings
+        $footerHtml = $footerSettings['email_footer'] ?? '';
+        if (empty($footerHtml)) {
+            // Construct Social Icons
+            $socialIconsHtml = '';
+            $socialPlatforms = [
+                'instagram' => ['url_key' => 'footer_instagram_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/instagram-new.png'],
+                'facebook' => ['url_key' => 'footer_facebook_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/facebook-new.png'],
+                'twitter' => ['url_key' => 'footer_twitter_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/twitter.png'],
+                'youtube' => ['url_key' => 'footer_youtube_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/youtube-play.png'],
+                'tiktok' => ['url_key' => 'footer_tiktok_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/tiktok.png'],
+                'linkedin' => ['url_key' => 'footer_linkedin_url', 'icon' => 'https://img.icons8.com/material-outlined/48/4f5660/linkedin--v1.png'],
+            ];
+            
+            foreach ($socialPlatforms as $platform => $info) {
+                $url = $footerSettings[$info['url_key']] ?? null;
+                if (!empty($url)) {
+                    $socialIconsHtml .= '<a href="' . htmlspecialchars($url) . '" style="display: inline-block; margin: 0 8px; text-decoration: none;" target="_blank"><img src="' . $info['icon'] . '" width="24" height="24" style="vertical-align: middle; border: 0;" alt="' . ucfirst($platform) . '"></a>';
+                }
+            }
+            
+            // Construct Unsubscribe text
+            $unsubscribeHtml = '';
+            if ($unsubscribeEnabled) {
+                $unsubscribeHtml = '<p style="margin: 16px 0; font-size: 13px; color: #4b5563;">If you no longer wish to receive commercial emails from ' . htmlspecialchars($companyName) . ', you can <a href="' . htmlspecialchars($unsubscribeUrl) . '" style="color: #4b5563; text-decoration: underline;" target="_blank">Unsubscribe</a>.</p>';
+            }
+            
+            // Construct Legal Links
+            $legalLinksList = [];
+            if (!empty($footerSettings['footer_terms_url'])) {
+                $legalLinksList[] = '<a href="' . htmlspecialchars($footerSettings['footer_terms_url']) . '" style="color: #4b5563; text-decoration: underline; margin: 0 10px;" target="_blank">Terms</a>';
+            }
+            if (!empty($footerSettings['footer_privacy_url'])) {
+                $legalLinksList[] = '<a href="' . htmlspecialchars($footerSettings['footer_privacy_url']) . '" style="color: #4b5563; text-decoration: underline; margin: 0 10px;" target="_blank">Privacy Policy</a>';
+            }
+            if (!empty($footerSettings['footer_contact_url'])) {
+                $legalLinksList[] = '<a href="' . htmlspecialchars($footerSettings['footer_contact_url']) . '" style="color: #4b5563; text-decoration: underline; margin: 0 10px;" target="_blank">Contact Us</a>';
+            }
+            $legalLinksHtml = !empty($legalLinksList) ? '<div style="margin-top: 16px; font-size: 13px;">' . implode(' | ', $legalLinksList) . '</div>' : '';
+            
+            $footerTitle = $footerSettings['footer_title'] ?? '';
+            $footerSubtitle = $footerSettings['footer_subtitle'] ?? '';
+            $footerWebsiteUrl = $footerSettings['footer_website_url'] ?? '';
+            $footerWebsiteText = $footerSettings['footer_website_text'] ?? $footerWebsiteUrl;
+            $footerCopyright = $footerSettings['footer_copyright'] ?? '';
+            $footerAddress = $footerSettings['footer_address'] ?? '';
+            
+            $footerHtml = '<div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; color: #4b5563; font-size: 14px; line-height: 1.6; padding: 40px 20px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; margin-top: 40px;">';
+            if (!empty($footerTitle)) {
+                $footerHtml .= '<h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #111827;">' . htmlspecialchars($footerTitle) . '</h3>';
+            }
+            if (!empty($footerSubtitle)) {
+                $footerHtml .= '<p style="margin: 0 0 16px 0; font-size: 14px; color: #4b5563; max-width: 480px; margin-left: auto; margin-right: auto;">' . htmlspecialchars($footerSubtitle) . '</p>';
+            }
+            if (!empty($footerWebsiteUrl)) {
+                $footerHtml .= '<a href="' . htmlspecialchars($footerWebsiteUrl) . '" style="color: #111827; font-weight: 600; text-decoration: underline; font-size: 14px;" target="_blank">' . htmlspecialchars($footerWebsiteText) . '</a>';
+            }
+            if (!empty($socialIconsHtml)) {
+                $footerHtml .= '<div style="margin: 24px 0;">' . $socialIconsHtml . '</div>';
+            }
+            $footerHtml .= $unsubscribeHtml;
+            
+            $copyrightAddressList = [];
+            if (!empty($footerCopyright)) $copyrightAddressList[] = htmlspecialchars($footerCopyright);
+            if (!empty($footerAddress)) $copyrightAddressList[] = htmlspecialchars($footerAddress);
+            
+            if (!empty($copyrightAddressList)) {
+                $footerHtml .= '<p style="margin: 16px 0 8px 0; font-size: 12px; color: #9ca3af;">' . implode(' - ', $copyrightAddressList) . '</p>';
+            }
+            $footerHtml .= $legalLinksHtml;
+            $footerHtml .= '</div>';
         }
-        
-        // Construct Legal Links
-        $legalLinksList = [];
-        if (!empty($footerSettings['footer_terms_url'])) {
-            $legalLinksList[] = '<a href="' . htmlspecialchars($footerSettings['footer_terms_url']) . '" style="color: #4b5563; text-decoration: underline; margin: 0 10px;" target="_blank">Terms</a>';
-        }
-        if (!empty($footerSettings['footer_privacy_url'])) {
-            $legalLinksList[] = '<a href="' . htmlspecialchars($footerSettings['footer_privacy_url']) . '" style="color: #4b5563; text-decoration: underline; margin: 0 10px;" target="_blank">Privacy Policy</a>';
-        }
-        if (!empty($footerSettings['footer_contact_url'])) {
-            $legalLinksList[] = '<a href="' . htmlspecialchars($footerSettings['footer_contact_url']) . '" style="color: #4b5563; text-decoration: underline; margin: 0 10px;" target="_blank">Contact Us</a>';
-        }
-        $legalLinksHtml = !empty($legalLinksList) ? '<div style="margin-top: 16px; font-size: 13px;">' . implode(' | ', $legalLinksList) . '</div>' : '';
-        
-        $footerTitle = $footerSettings['footer_title'] ?? '';
-        $footerSubtitle = $footerSettings['footer_subtitle'] ?? '';
-        $footerWebsiteUrl = $footerSettings['footer_website_url'] ?? '';
-        $footerWebsiteText = $footerSettings['footer_website_text'] ?? $footerWebsiteUrl;
-        $footerCopyright = $footerSettings['footer_copyright'] ?? '';
-        $footerAddress = $footerSettings['footer_address'] ?? '';
-        
-        $footerHtml = '<div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; color: #4b5563; font-size: 14px; line-height: 1.6; padding: 40px 20px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; margin-top: 40px;">';
-        if (!empty($footerTitle)) {
-            $footerHtml .= '<h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #111827;">' . htmlspecialchars($footerTitle) . '</h3>';
-        }
-        if (!empty($footerSubtitle)) {
-            $footerHtml .= '<p style="margin: 0 0 16px 0; font-size: 14px; color: #4b5563; max-width: 480px; margin-left: auto; margin-right: auto;">' . htmlspecialchars($footerSubtitle) . '</p>';
-        }
-        if (!empty($footerWebsiteUrl)) {
-            $footerHtml .= '<a href="' . htmlspecialchars($footerWebsiteUrl) . '" style="color: #111827; font-weight: 600; text-decoration: underline; font-size: 14px;" target="_blank">' . htmlspecialchars($footerWebsiteText) . '</a>';
-        }
-        if (!empty($socialIconsHtml)) {
-            $footerHtml .= '<div style="margin: 24px 0;">' . $socialIconsHtml . '</div>';
-        }
-        $footerHtml .= $unsubscribeHtml;
-        
-        $copyrightAddressList = [];
-        if (!empty($footerCopyright)) $copyrightAddressList[] = htmlspecialchars($footerCopyright);
-        if (!empty($footerAddress)) $copyrightAddressList[] = htmlspecialchars($footerAddress);
-        
-        if (!empty($copyrightAddressList)) {
-            $footerHtml .= '<p style="margin: 16px 0 8px 0; font-size: 12px; color: #9ca3af;">' . implode(' - ', $copyrightAddressList) . '</p>';
-        }
-        $footerHtml .= $legalLinksHtml;
-        $footerHtml .= '</div>';
         
         // Wrap/Inject
         if (str_contains($body, '<html>') || str_contains($body, '<html ')) {
@@ -926,6 +949,9 @@ class EdgeFunctionCompatController extends Controller
             }
             
             $finalBody = $body;
+            if (str_contains($finalBody, '{{email_header}}')) {
+                $finalBody = str_replace('{{email_header}}', $headerHtml, $finalBody);
+            }
             if (str_contains($finalBody, '{{email_footer}}')) {
                 $finalBody = str_replace('{{email_footer}}', $footerHtml, $finalBody);
             } else if (str_contains($finalBody, '</body>')) {
@@ -943,15 +969,6 @@ class EdgeFunctionCompatController extends Controller
             }
             
             return $finalBody;
-        }
-        
-        // Construct Header HTML
-        $headerHtml = '';
-        if ($logoUrl) {
-            $logoAbsoluteUrl = str_starts_with($logoUrl, 'http') ? $logoUrl : url($logoUrl);
-            $headerHtml = '<div style="text-align: center; padding: 24px 0; border-bottom: 1px solid #e5e7eb;"><img src="' . htmlspecialchars($logoAbsoluteUrl) . '" style="max-height: 48px; width: auto;" alt="' . htmlspecialchars($companyName) . '"></div>';
-        } else {
-            $headerHtml = '<div style="text-align: center; padding: 24px 0; border-bottom: 1px solid #e5e7eb;"><h2 style="margin: 0; color: #111827; font-size: 20px; font-weight: 600;">' . htmlspecialchars($companyName) . '</h2></div>';
         }
         
         $webviewHtml = '';

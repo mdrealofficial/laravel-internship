@@ -103,8 +103,16 @@ export interface ApplicationForm {
   id: string;
   title: string;
   form_type?: 'internship' | 'job';
+  job_type?: string | null;
+  job_location?: string | null;
+  office_timing?: string | null;
+  working_days?: string | null;
   batch_name: string | null;
   description: string | null;
+  responsibilities?: string | null;
+  requirements?: string | null;
+  preferred_skills?: string | null;
+  benefits?: string | null;
   slug: string;
   department_id: string | null;
   is_multi_department?: boolean;
@@ -113,6 +121,7 @@ export interface ApplicationForm {
   stipend_amount?: string | null;
   salary_range?: string | null;
   facilities?: string[] | null;
+  seeking_positions?: string[] | null;
   is_active: boolean;
   deadline: string | null;
   start_date?: string | null;

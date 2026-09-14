@@ -11,7 +11,6 @@ import Home from "./pages/Home";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import InternManagement from "./pages/admin/InternManagement";
 import BatchMessaging from "./pages/admin/BatchMessaging";
-import DepartmentManagement from "./pages/admin/DepartmentManagement";
 import CertificateManagement from "./pages/admin/CertificateManagement";
 import StaffManagement from "./pages/admin/StaffManagement";
 import FormManagement from "./pages/admin/FormManagement";
@@ -19,7 +18,6 @@ import FormBuilder from "./pages/admin/FormBuilder";
 import ApplicationManagement from "./pages/admin/ApplicationManagement";
 import Reports from "./pages/admin/Reports";
 import Settings from "./pages/admin/Settings";
-import RoleTitleManagement from "./pages/admin/RoleTitleManagement";
 import InternDashboard from "./pages/intern/InternDashboard";
 import InternCertificate from "./pages/intern/InternCertificate";
 import StaffDashboard from "./pages/staff/StaffDashboard";
@@ -27,13 +25,10 @@ import StaffAssessments from "./pages/staff/StaffAssessments";
 import StaffSettings from "./pages/staff/StaffSettings";
 import ApplicationForm from "./pages/apply/ApplicationForm";
 import ApplicationStatusCheck from "./pages/apply/ApplicationStatusCheck";
-import JobFormManagement from "./pages/admin/JobFormManagement";
 import JobFormBuilder from "./pages/admin/JobFormBuilder";
 import JobApplicationManagement from "./pages/admin/JobApplicationManagement";
-import JobBatchMessaging from "./pages/admin/JobBatchMessaging";
 import JobApplicationForm from "./pages/apply/JobApplicationForm";
 import NotificationReports from "./pages/admin/NotificationReports";
-import NotificationLogs from "./pages/admin/NotificationLogs";
 import NotFound from "./pages/NotFound";
 import { Unsubscribe } from "./pages/Unsubscribe";
 
@@ -65,22 +60,23 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/interns" element={<ProtectedRoute allowedRoles={['admin']}><InternManagement /></ProtectedRoute>} />
             <Route path="/admin/batch-messaging" element={<ProtectedRoute allowedRoles={['admin']}><BatchMessaging /></ProtectedRoute>} />
-            <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['admin']}><DepartmentManagement /></ProtectedRoute>} />
+            <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['admin']}><StaffManagement /></ProtectedRoute>} />
             <Route path="/admin/certificates" element={<ProtectedRoute allowedRoles={['admin']}><CertificateManagement /></ProtectedRoute>} />
             <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={['admin']}><StaffManagement /></ProtectedRoute>} />
             <Route path="/admin/forms" element={<ProtectedRoute allowedRoles={['admin']}><FormManagement /></ProtectedRoute>} />
             <Route path="/admin/forms/new" element={<ProtectedRoute allowedRoles={['admin']}><FormBuilder /></ProtectedRoute>} />
             <Route path="/admin/forms/:id" element={<ProtectedRoute allowedRoles={['admin']}><FormBuilder /></ProtectedRoute>} />
-            <Route path="/admin/job-forms" element={<ProtectedRoute allowedRoles={['admin']}><JobFormManagement /></ProtectedRoute>} />
+            <Route path="/admin/job-forms" element={<ProtectedRoute allowedRoles={['admin']}><FormManagement /></ProtectedRoute>} />
             <Route path="/admin/job-forms/new" element={<ProtectedRoute allowedRoles={['admin']}><JobFormBuilder /></ProtectedRoute>} />
             <Route path="/admin/job-forms/:id" element={<ProtectedRoute allowedRoles={['admin']}><JobFormBuilder /></ProtectedRoute>} />
             <Route path="/admin/applications" element={<ProtectedRoute allowedRoles={['admin']}><ApplicationManagement /></ProtectedRoute>} />
             <Route path="/admin/job-applications" element={<ProtectedRoute allowedRoles={['admin']}><JobApplicationManagement /></ProtectedRoute>} />
-            <Route path="/admin/job-batch-messaging" element={<ProtectedRoute allowedRoles={['admin']}><JobBatchMessaging /></ProtectedRoute>} />
+            <Route path="/admin/job-batch-messaging" element={<ProtectedRoute allowedRoles={['admin']}><BatchMessaging /></ProtectedRoute>} />
             <Route path="/admin/notification-reports" element={<ProtectedRoute allowedRoles={['admin']}><NotificationReports /></ProtectedRoute>} />
-            <Route path="/admin/notification-logs" element={<ProtectedRoute allowedRoles={['admin']}><NotificationLogs /></ProtectedRoute>} />
+            <Route path="/admin/notification-logs" element={<ProtectedRoute allowedRoles={['admin']}><NotificationReports /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
-            <Route path="/admin/roles" element={<ProtectedRoute allowedRoles={['admin']}><RoleTitleManagement /></ProtectedRoute>} />
+            <Route path="/admin/roles" element={<ProtectedRoute allowedRoles={['admin']}><StaffManagement /></ProtectedRoute>} />
+            <Route path="/admin/positions" element={<ProtectedRoute allowedRoles={['admin']}><StaffManagement /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />
             
             {/* Staff Routes */}

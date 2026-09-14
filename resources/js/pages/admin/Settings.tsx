@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -74,6 +75,8 @@ interface SiteSettings {
   footer_youtube_url: string | null;
   footer_tiktok_url: string | null;
   footer_linkedin_url: string | null;
+  email_header?: string | null;
+  email_footer?: string | null;
 }
 
 const Settings = () => {
@@ -148,6 +151,8 @@ const Settings = () => {
   const [footerYoutubeUrl, setFooterYoutubeUrl] = useState('');
   const [footerTiktokUrl, setFooterTiktokUrl] = useState('');
   const [footerLinkedinUrl, setFooterLinkedinUrl] = useState('');
+  const [emailHeader, setEmailHeader] = useState('');
+  const [emailFooter, setEmailFooter] = useState('');
   const [savingEmailBranding, setSavingEmailBranding] = useState(false);
 
   // Gemini API Key state
@@ -413,43 +418,47 @@ const Settings = () => {
           footer_instagram_url: null,
           footer_facebook_url: null,
           footer_twitter_url: null,
-          footer_youtube_url: null,
-          footer_tiktok_url: null,
-          footer_linkedin_url: null,
-        };
-        settings.forEach(s => {
-          if (s.setting_key === 'certificate_pattern_enabled') {
-            settingsMap.certificate_pattern_enabled = s.setting_value === 'true';
-          } else if (s.setting_key === 'certificate_pattern_opacity') {
-            settingsMap.certificate_pattern_opacity = parseInt(s.setting_value || '5', 10);
-          } else if (s.setting_key === 'certificate_default_theme') {
-            settingsMap.certificate_default_theme = (s.setting_value as TemplateType) || 'modern';
-          } else if (s.setting_key === 'certificate_download_format') {
-            settingsMap.certificate_download_format = (s.setting_value as 'pdf' | 'png' | 'jpeg') || 'pdf';
-          } else if (s.setting_key in settingsMap) {
-            (settingsMap as any)[s.setting_key] = s.setting_value;
-          }
-        });
-        setSiteSettings(settingsMap);
-        setCompanyName(settingsMap.company_name || 'DIGI5 LTD');
-        setGeminiApiKey(settingsMap.gemini_api_key || '');
-        setAdminEmail(settingsMap.admin_email || '');
-        setFooterTitle(settingsMap.footer_title || '');
-        setFooterSubtitle(settingsMap.footer_subtitle || '');
-        setFooterWebsiteUrl(settingsMap.footer_website_url || '');
-        setFooterWebsiteText(settingsMap.footer_website_text || '');
-        setFooterAddress(settingsMap.footer_address || '');
-        setFooterCopyright(settingsMap.footer_copyright || '');
-        setFooterTermsUrl(settingsMap.footer_terms_url || '');
-        setFooterPrivacyUrl(settingsMap.footer_privacy_url || '');
-        setFooterContactUrl(settingsMap.footer_contact_url || '');
-        setFooterInstagramUrl(settingsMap.footer_instagram_url || '');
-        setFooterFacebookUrl(settingsMap.footer_facebook_url || '');
-        setFooterTwitterUrl(settingsMap.footer_twitter_url || '');
-        setFooterYoutubeUrl(settingsMap.footer_youtube_url || '');
-        setFooterTiktokUrl(settingsMap.footer_tiktok_url || '');
-        setFooterLinkedinUrl(settingsMap.footer_linkedin_url || '');
-      }
+            footer_youtube_url: null,
+            footer_tiktok_url: null,
+            footer_linkedin_url: null,
+            email_header: null,
+            email_footer: null,
+          };
+          settings.forEach(s => {
+            if (s.setting_key === 'certificate_pattern_enabled') {
+              settingsMap.certificate_pattern_enabled = s.setting_value === 'true';
+            } else if (s.setting_key === 'certificate_pattern_opacity') {
+              settingsMap.certificate_pattern_opacity = parseInt(s.setting_value || '5', 10);
+            } else if (s.setting_key === 'certificate_default_theme') {
+              settingsMap.certificate_default_theme = (s.setting_value as TemplateType) || 'modern';
+            } else if (s.setting_key === 'certificate_download_format') {
+              settingsMap.certificate_download_format = (s.setting_value as 'pdf' | 'png' | 'jpeg') || 'pdf';
+            } else if (s.setting_key in settingsMap) {
+              (settingsMap as any)[s.setting_key] = s.setting_value;
+            }
+          });
+          setSiteSettings(settingsMap);
+          setCompanyName(settingsMap.company_name || 'DIGI5 LTD');
+          setGeminiApiKey(settingsMap.gemini_api_key || '');
+          setAdminEmail(settingsMap.admin_email || '');
+          setFooterTitle(settingsMap.footer_title || '');
+          setFooterSubtitle(settingsMap.footer_subtitle || '');
+          setFooterWebsiteUrl(settingsMap.footer_website_url || '');
+          setFooterWebsiteText(settingsMap.footer_website_text || '');
+          setFooterAddress(settingsMap.footer_address || '');
+          setFooterCopyright(settingsMap.footer_copyright || '');
+          setFooterTermsUrl(settingsMap.footer_terms_url || '');
+          setFooterPrivacyUrl(settingsMap.footer_privacy_url || '');
+          setFooterContactUrl(settingsMap.footer_contact_url || '');
+          setFooterInstagramUrl(settingsMap.footer_instagram_url || '');
+          setFooterFacebookUrl(settingsMap.footer_facebook_url || '');
+          setFooterTwitterUrl(settingsMap.footer_twitter_url || '');
+          setFooterYoutubeUrl(settingsMap.footer_youtube_url || '');
+          setFooterTiktokUrl(settingsMap.footer_tiktok_url || '');
+          setFooterLinkedinUrl(settingsMap.footer_linkedin_url || '');
+          setEmailHeader(settingsMap.email_header || '');
+          setEmailFooter(settingsMap.email_footer || '');
+        }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -504,6 +513,8 @@ const Settings = () => {
         { key: 'footer_youtube_url', value: footerYoutubeUrl },
         { key: 'footer_tiktok_url', value: footerTiktokUrl },
         { key: 'footer_linkedin_url', value: footerLinkedinUrl },
+        { key: 'email_header', value: emailHeader },
+        { key: 'email_footer', value: emailFooter },
       ];
 
       const promises = settingsToSave.map(s => 
@@ -539,6 +550,8 @@ const Settings = () => {
         footer_youtube_url: footerYoutubeUrl,
         footer_tiktok_url: footerTiktokUrl,
         footer_linkedin_url: footerLinkedinUrl,
+        email_header: emailHeader,
+        email_footer: emailFooter,
       }));
 
       toast({ title: 'Success', description: 'Email branding & footer settings saved successfully' });
@@ -1503,6 +1516,40 @@ const Settings = () => {
                     className="max-w-xl"
                   />
                   <p className="text-xs text-muted-foreground">Default email address used for admin alerts and notifications.</p>
+                </div>
+
+                <Separator />
+
+                {/* Email Custom Header */}
+                <div className="space-y-2">
+                  <Label htmlFor="email-header">Custom Email Header (HTML/Text)</Label>
+                  <Textarea
+                    id="email-header"
+                    value={emailHeader}
+                    onChange={(e) => setEmailHeader(e.target.value)}
+                    placeholder="e.g. <div style='text-align: center; padding: 20px;'><img src='https://logo.com' /></div>"
+                    className="font-mono text-sm min-h-[100px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Custom HTML or text to prepend to all outgoing emails. Leave empty to use the default company logo/name.
+                  </p>
+                </div>
+
+                <Separator />
+
+                {/* Email Custom Footer */}
+                <div className="space-y-2">
+                  <Label htmlFor="email-footer">Custom Email Footer (HTML/Text)</Label>
+                  <Textarea
+                    id="email-footer"
+                    value={emailFooter}
+                    onChange={(e) => setEmailFooter(e.target.value)}
+                    placeholder="e.g. <div style='text-align: center; font-size: 12px;'>© 2026 Company. All rights reserved.</div>"
+                    className="font-mono text-sm min-h-[100px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Custom HTML or text to append to all outgoing emails. Leave empty to use the default social/copyright footer.
+                  </p>
                 </div>
 
                 <Separator />

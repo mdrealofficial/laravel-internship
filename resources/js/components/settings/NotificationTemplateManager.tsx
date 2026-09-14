@@ -583,6 +583,15 @@ export const NotificationTemplateManager: React.FC = () => {
     return labels[key] || key;
   };
 
+  const formatPreviewHtml = (htmlContent: string) => {
+    if (!htmlContent) return '';
+    const hasHtmlTags = /<(?:p|div|br|span|table|tr|td|h[1-6]|a|b|i|strong|em|hr|img|ul|ol|li|html|body|head|style|meta)[\s>\/]/i.test(htmlContent);
+    if (!hasHtmlTags) {
+      return htmlContent.replace(/\n/g, '<br>');
+    }
+    return htmlContent;
+  };
+
   const emailTemplates = templates.filter(t => t.template_type === 'email');
   const smsTemplates = templates.filter(t => t.template_type === 'sms');
 
@@ -1113,7 +1122,7 @@ export const NotificationTemplateManager: React.FC = () => {
                       {editorMode === 'code' ? (
                         // Render raw HTML body directly
                         <div className="p-6 font-sans">
-                          <div dangerouslySetInnerHTML={{ __html: editingTemplate.body_template }} />
+                          <div dangerouslySetInnerHTML={{ __html: formatPreviewHtml(editingTemplate.body_template) }} />
                           {getPreviewFooterHtml()}
                         </div>
                       ) : (

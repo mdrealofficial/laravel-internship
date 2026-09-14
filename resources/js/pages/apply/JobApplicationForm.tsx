@@ -20,8 +20,10 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { ApplicationForm as AppForm, FormField } from '@/types/database';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle, Loader2, BadgeDollarSign, Gift, ChevronRight, Check, CalendarDays, Clock, Building2, Briefcase } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, BadgeDollarSign, Gift, ChevronRight, Check, CalendarDays, Clock, Building2, Briefcase, MapPin, Calendar } from 'lucide-react';
 import { format, isPast } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { FormattedText } from '@/components/FormattedText';
 
 export default function JobApplicationFormPage() {
   const { slug } = useParams();
@@ -695,25 +697,63 @@ export default function JobApplicationFormPage() {
             />
 
             <div className="px-6 pt-8 pb-6 sm:px-8 border-b border-gray-100">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border bg-indigo-50 text-indigo-700 border-indigo-200"
-                >
-                  <Briefcase className="h-3.5 w-3.5" />
-                  Full-time Position
-                </span>
-                {form.batch_name && (
-                  <span className="inline-flex items-center rounded-full bg-gray-550 border border-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 bg-gray-50">
+              {form.batch_name && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <span className="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
                     {form.batch_name}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
 
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight mb-2">
                 {form.title}
               </h1>
+              {form.seeking_positions && form.seeking_positions.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Seeking Positions:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {form.seeking_positions.map((pos, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="secondary"
+                        className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-md font-medium text-[11px] px-2 py-0.5"
+                      >
+                        {pos}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               {form.description && (
-                <p className="text-sm text-gray-500 leading-relaxed">{form.description}</p>
+                <FormattedText text={form.description} className="text-sm text-gray-500 leading-relaxed space-y-2 mt-3" />
+              )}
+
+              {form.responsibilities && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Responsibilities</h3>
+                  <FormattedText text={form.responsibilities} className="text-sm text-gray-600 space-y-2" />
+                </div>
+              )}
+
+              {form.requirements && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Requirements</h3>
+                  <FormattedText text={form.requirements} className="text-sm text-gray-600 space-y-2" />
+                </div>
+              )}
+
+              {form.preferred_skills && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Preferred Skills</h3>
+                  <FormattedText text={form.preferred_skills} className="text-sm text-gray-600 space-y-2" />
+                </div>
+              )}
+
+              {form.benefits && (
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Benefits</h3>
+                  <FormattedText text={form.benefits} className="text-sm text-gray-600 space-y-2" />
+                </div>
               )}
 
               {(startDate || form.deadline || form.department) && (
@@ -756,42 +796,69 @@ export default function JobApplicationFormPage() {
             </div>
 
             <div className="px-6 py-7 sm:px-8 space-y-7">
-              <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50 p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-shrink-0 rounded-full bg-indigo-500 p-1.5 shadow-sm">
-                    <Check className="h-4 w-4 text-white stroke-[3]" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-shrink-0 rounded-full bg-indigo-500 p-1.5 shadow-sm">
+                      <Check className="h-4 w-4 text-white stroke-[3]" />
+                    </div>
+                    <p className="font-bold text-indigo-800 text-base">Salary & Compensation</p>
                   </div>
-                  <p className="font-bold text-indigo-800 text-base">Salary & Compensation</p>
+                  <div className="ml-10">
+                    <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-widest mb-0.5">Salary Range</p>
+                    <p className="text-3xl font-black text-indigo-700 leading-none">
+                      {salaryRange || 'Negotiable'}
+                    </p>
+                  </div>
                 </div>
-                <div className="ml-10">
-                  <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-widest mb-0.5">Salary Range</p>
-                  <p className="text-3xl font-black text-indigo-700 leading-none">
-                    {salaryRange || 'Negotiable'}
-                  </p>
+
+                <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-shrink-0 rounded-full bg-indigo-500 p-1.5 shadow-sm">
+                      <Briefcase className="h-4 w-4 text-white" />
+                    </div>
+                    <p className="font-bold text-indigo-800 text-base">Work Environment</p>
+                  </div>
+                  <div className="ml-10 space-y-3.5">
+                    {form.job_type && (
+                      <div className="flex items-center gap-2.5">
+                        <Briefcase className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
+                        <div>
+                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block leading-none mb-0.5">Job Type</span>
+                          <span className="text-xs font-bold text-indigo-700">{form.job_type}</span>
+                        </div>
+                      </div>
+                    )}
+                    {form.job_location && (
+                      <div className="flex items-center gap-2.5">
+                        <MapPin className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
+                        <div>
+                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block leading-none mb-0.5">Location</span>
+                          <span className="text-xs font-bold text-indigo-700">{form.job_location}</span>
+                        </div>
+                      </div>
+                    )}
+                    {form.office_timing && (
+                      <div className="flex items-center gap-2.5">
+                        <Clock className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
+                        <div>
+                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block leading-none mb-0.5">Office Timing</span>
+                          <span className="text-xs font-bold text-indigo-700">{form.office_timing}</span>
+                        </div>
+                      </div>
+                    )}
+                    {form.working_days && (
+                      <div className="flex items-center gap-2.5">
+                        <Calendar className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
+                        <div>
+                          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block leading-none mb-0.5">Working Days</span>
+                          <span className="text-xs font-bold text-indigo-700">{form.working_days}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {facilitiesList.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Gift className="h-5 w-5 text-indigo-500" />
-                    <h2 className="text-base font-bold text-gray-800">Benefits & Perks</h2>
-                  </div>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {facilitiesList.map((facility, i) => (
-                      <li
-                        key={i}
-                        className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-900"
-                      >
-                        <span className="flex-shrink-0 flex items-center justify-center rounded-full bg-indigo-500 p-1 shadow-sm">
-                          <Check className="h-3 w-3 text-white stroke-[3]" />
-                        </span>
-                        {facility}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
 
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
                 <p className="text-sm text-gray-500 leading-relaxed mb-5">
@@ -849,7 +916,27 @@ export default function JobApplicationFormPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">{form.title}</CardTitle>
-              {form.description && <CardDescription>{form.description}</CardDescription>}
+              {form.seeking_positions && form.seeking_positions.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Seeking Positions:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {form.seeking_positions.map((pos, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="secondary"
+                        className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-md font-medium text-[11px] px-2 py-0.5"
+                      >
+                        {pos}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {form.description && (
+                <div className="text-sm text-muted-foreground mt-2">
+                  <FormattedText text={form.description} />
+                </div>
+              )}
               {form.deadline && (
                 <p className="text-sm text-muted-foreground">
                   Deadline: {format(new Date(form.deadline), 'MMMM d, yyyy')}

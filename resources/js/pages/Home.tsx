@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Zap,
   ArrowRight,
+  MapPin,
 } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
@@ -265,7 +266,7 @@ export default function Home() {
                                 ? 'bg-indigo-50 text-indigo-700' 
                                 : 'bg-cyan-50 text-cyan-700'
                             }`}>
-                              {isJob ? 'Career Role' : 'Internship'}
+                              {form.job_type || (isJob ? 'Career Role' : 'Internship')}
                             </span>
                             {form.department?.name && (
                               <span className="text-xs text-slate-400 font-medium">
@@ -285,24 +286,38 @@ export default function Home() {
 
                         {/* Lower Specs */}
                         <div className="border-t border-slate-50 pt-4 space-y-4">
-                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                            <div className="flex items-center gap-1.5">
-                              <BadgeDollarSign className="h-4 w-4 text-slate-400" />
-                              <span>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 mb-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <BadgeDollarSign className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                              <span className="truncate">
                                 {isJob 
                                   ? (form.salary_range || 'Competitive')
                                   : (form.is_paid ? `${form.stipend_amount || 'Paid'}` : 'Unpaid')}
                               </span>
                             </div>
-                            {form.deadline && (
-                              <div className="flex items-center gap-1.5">
-                                <Calendar className="h-4 w-4 text-slate-400" />
-                                <span>
-                                  Until {format(new Date(form.deadline), 'MMM dd')}
-                                </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                              <span className="truncate">{form.job_location || 'Not Specified'}</span>
+                            </div>
+                            {form.office_timing && (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Clock className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                <span className="truncate">{form.office_timing}</span>
+                              </div>
+                            )}
+                            {form.working_days && (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                <span className="truncate">{form.working_days}</span>
                               </div>
                             )}
                           </div>
+                          {form.deadline && (
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1">
+                              <Clock className="h-3.5 w-3.5 text-slate-300" />
+                              <span>Apply before {format(new Date(form.deadline), 'MMM dd, yyyy')}</span>
+                            </div>
+                          )}
 
                           <Link
                             to={targetLink}
