@@ -17,6 +17,7 @@ interface SMTPConfig {
   password: string;
   from_email: string;
   from_name: string;
+  reply_to?: string;
   encryption: 'ssl' | 'tls' | 'none';
   unsubscribe_enabled?: boolean;
   unsubscribe_url?: string;
@@ -42,6 +43,7 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
     password: '',
     from_email: '',
     from_name: '',
+    reply_to: '',
     encryption: 'tls',
     unsubscribe_enabled: false,
     unsubscribe_url: '',
@@ -78,6 +80,7 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
             password: savedConfig.password || '',
             from_email: savedConfig.from_email || '',
             from_name: savedConfig.from_name || '',
+            reply_to: savedConfig.reply_to || '',
             encryption: encryption,
             unsubscribe_enabled: savedConfig.unsubscribe_enabled || false,
             unsubscribe_url: savedConfig.unsubscribe_url || '',
@@ -268,6 +271,20 @@ export const SMTPSettingsCard: React.FC<Props> = ({ userId }) => {
               placeholder="DIGI5 LTD"
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="reply-to-email">Reply-To Email</Label>
+          <Input
+            id="reply-to-email"
+            type="email"
+            value={config.reply_to || ''}
+            onChange={(e) => setConfig({ ...config, reply_to: e.target.value })}
+            placeholder="support@example.com (optional - replies from users will go here)"
+          />
+          <p className="text-xs text-muted-foreground">
+            When recipients click "Reply" in their email client, their response will be addressed to this email.
+          </p>
         </div>
 
         <div className="space-y-3 p-4 rounded-lg border bg-muted/30">

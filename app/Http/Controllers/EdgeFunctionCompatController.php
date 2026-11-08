@@ -759,6 +759,10 @@ class EdgeFunctionCompatController extends Controller
                     'text' => $plainBody,
                 ];
 
+                if (!empty($config['reply_to'])) {
+                    $payload['reply_to'] = $config['reply_to'];
+                }
+
                 if (!empty($unsubscribeHeaders)) {
                     $payload['headers'] = $unsubscribeHeaders;
                 }
@@ -802,6 +806,10 @@ class EdgeFunctionCompatController extends Controller
                 
                 if (!empty($config['from_email'])) {
                     $message->from($config['from_email'], $config['from_name'] ?? null);
+                }
+
+                if (!empty($config['reply_to'])) {
+                    $message->replyTo($config['reply_to'], $config['from_name'] ?? null);
                 }
 
                 foreach ($unsubscribeHeaders as $key => $val) {
