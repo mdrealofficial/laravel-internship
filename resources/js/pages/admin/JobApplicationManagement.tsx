@@ -619,10 +619,10 @@ export default function JobApplicationManagement() {
           </Select>
           <Select value={selectedFormFilter} onValueChange={setSelectedFormFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by job position" />
+              <SelectValue placeholder="Filter by form" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Positions</SelectItem>
+              <SelectItem value="all">All Forms</SelectItem>
               {forms
                 .filter((form) => {
                   const matchesDept = selectedDeptFilter === 'all' || form.department_id === selectedDeptFilter;
