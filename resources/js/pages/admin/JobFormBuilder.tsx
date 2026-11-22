@@ -269,8 +269,8 @@ export default function JobFormBuilder() {
       setDeadline(form.deadline ? form.deadline.split('T')[0] : '');
       setStartDate(form.start_date ? form.start_date.split('T')[0] : '');
       setSalaryRange(form.salary_range || '');
-      setFacilities(form.facilities || []);
-      setSeekingPositions(form.seeking_positions || []);
+      setFacilities(Array.isArray(form.facilities) ? form.facilities : []);
+      setSeekingPositions(Array.isArray(form.seeking_positions) ? form.seeking_positions : []);
       setAutoScreening(form.auto_screening || {
         enabled: false,
         minScore: 70,

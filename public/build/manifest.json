@@ -1,6 +1,6 @@
 {
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-CynWsRqC.js",
+    "file": "assets/index.es-CTO97erQ.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
@@ -55,7 +55,7 @@
     "src": "resources/js/assets/patterns/robotics-icons.png"
   },
   "resources/js/main.tsx": {
-    "file": "assets/main-BETO1gPc.js",
+    "file": "assets/main-DJL1An7F.js",
     "name": "main",
     "src": "resources/js/main.tsx",
     "isEntry": true,

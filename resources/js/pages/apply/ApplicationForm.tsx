@@ -647,7 +647,7 @@ export default function ApplicationFormPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight mb-2">
                 {form.title}
               </h1>
-              {form.seeking_positions && form.seeking_positions.length > 0 && (
+              {Array.isArray(form.seeking_positions) && form.seeking_positions.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
                   <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Seeking Positions:</span>
                   <div className="flex flex-wrap gap-1.5">
@@ -879,7 +879,7 @@ export default function ApplicationFormPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">{form.title}</CardTitle>
-              {form.seeking_positions && form.seeking_positions.length > 0 && (
+              {Array.isArray(form.seeking_positions) && form.seeking_positions.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Seeking Positions:</span>
                   <div className="flex flex-wrap gap-1.5">

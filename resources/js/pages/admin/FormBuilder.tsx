@@ -265,8 +265,8 @@ export default function FormBuilder() {
       setStartDate(form.start_date ? form.start_date.split('T')[0] : '');
       setIsPaid(form.is_paid ?? false);
       setStipendAmount(form.stipend_amount ? String(form.stipend_amount) : '');
-      setFacilities(form.facilities || []);
-      setSeekingPositions(form.seeking_positions || []);
+      setFacilities(Array.isArray(form.facilities) ? form.facilities : []);
+      setSeekingPositions(Array.isArray(form.seeking_positions) ? form.seeking_positions : []);
       setAutoScreening(form.auto_screening || {
         enabled: false,
         minScore: 70,
