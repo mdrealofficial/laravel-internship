@@ -283,13 +283,14 @@ export default function FormBuilder() {
       const customFields = (form.form_fields || [])
         .sort((a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order)
         .filter((f: { validation_rules: { isSystemField?: boolean } | null }) => !f.validation_rules?.isSystemField)
-        .map((f: { id: string; field_type: FormFieldType; label: string; placeholder: string | null; is_required: boolean | null; options: string[] | null }) => ({
+        .map((f: { id: string; field_type: FormFieldType; label: string; placeholder: string | null; is_required: boolean | null; options: string[] | null; validation_rules: Record<string, unknown> | null }) => ({
           id: f.id,
           type: f.field_type,
           label: f.label,
           placeholder: f.placeholder || '',
           isRequired: f.is_required ?? false,
           options: f.options || [],
+          validationRules: f.validation_rules || null,
         }));
       
       setFields(customFields);
@@ -491,7 +492,7 @@ export default function FormBuilder() {
           is_required: f.isRequired,
           options: f.options.length > 0 ? f.options : null,
           display_order: index,
-          validation_rules: null,
+          validation_rules: f.validationRules || null,
         }));
 
         const { error: fieldsError } = await supabase.from('form_fields').insert(fieldsToInsert);

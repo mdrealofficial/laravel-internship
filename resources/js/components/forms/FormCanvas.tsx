@@ -16,6 +16,7 @@ export interface CanvasField {
   placeholder: string;
   isRequired: boolean;
   options: string[];
+  validationRules?: Record<string, unknown> | null;
 }
 
 interface SortableFieldProps {
@@ -92,12 +93,24 @@ function SortableField({ field, onEdit, onDelete }: SortableFieldProps) {
             )}
           </div>
         );
-      case 'file':
+      case 'file': {
+        const rules = (field.validationRules || {}) as { max_size_mb?: number; allowed_file_types?: string; file_instructions?: string };
+        const maxSize = rules.max_size_mb || 5;
+        const fileTypes = rules.allowed_file_types || 'PDF, DOC, DOCX, JPG, PNG';
+        const instructions = rules.file_instructions;
+
         return (
-          <div className="border-2 border-dashed border-input rounded-md p-4 text-center text-sm text-muted-foreground">
-            Click or drag to upload file
+          <div className="border-2 border-dashed border-input rounded-md p-4 text-center text-sm text-muted-foreground space-y-1">
+            <p className="font-medium text-foreground">Click or drag to upload file</p>
+            <p className="text-xs text-muted-foreground">
+              Allowed: {fileTypes} • Max size: {maxSize}MB
+            </p>
+            {instructions && (
+              <p className="text-xs text-primary font-medium">{instructions}</p>
+            )}
           </div>
         );
+      }
       case 'range': {
         const min = Number(field.options?.[0]) || 0;
         const max = Number(field.options?.[1]) || 100;

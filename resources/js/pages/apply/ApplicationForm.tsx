@@ -365,25 +365,36 @@ export default function ApplicationFormPage() {
           </div>
         );
 
-      case 'file':
+      case 'file': {
+        const rules = (field.validation_rules || {}) as { max_size_mb?: number; allowed_file_types?: string; file_instructions?: string };
+        const maxSizeMb = rules.max_size_mb && rules.max_size_mb > 0 ? rules.max_size_mb : 5;
+        const fileTypesStr = rules.allowed_file_types || 'PDF, DOC, DOCX, JPG, PNG';
+        const fileInstructions = rules.file_instructions;
+
+        // Parse allowed extensions
+        const allowedExts = fileTypesStr
+          .split(',')
+          .map((s) => s.trim().replace(/^\./, '').toLowerCase())
+          .filter(Boolean);
+        const acceptAttr = allowedExts.length > 0 ? allowedExts.map((e) => `.${e}`).join(',') : '.pdf,.doc,.docx,.jpg,.jpeg,.png,.webp';
+
         return (
-          <div className="border-2 border-dashed border-input rounded-md p-6 text-center">
+          <div className="border-2 border-dashed border-input rounded-md p-6 text-center space-y-3">
             <Input
               type="file"
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+              accept={acceptAttr}
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
 
-                if (file.size > 10 * 1024 * 1024) {
-                  toast.error('File size cannot exceed 10MB');
+                if (file.size > maxSizeMb * 1024 * 1024) {
+                  toast.error(`File size cannot exceed ${maxSizeMb}MB`);
                   return;
                 }
 
-                const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
                 const ext = file.name.split('.').pop()?.toLowerCase();
-                if (!ext || !allowedExtensions.includes(ext)) {
-                  toast.error('Unsupported file format. Please upload PDF, Word document, or Image.');
+                if (!ext || (allowedExts.length > 0 && !allowedExts.includes(ext))) {
+                  toast.error(`Unsupported file format. Allowed types: ${fileTypesStr}`);
                   return;
                 }
                 
@@ -407,11 +418,24 @@ export default function ApplicationFormPage() {
               }}
               className="cursor-pointer"
             />
+            
+            <div className="flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
+              <span className="font-medium text-gray-600">
+                Allowed formats: <span className="font-semibold text-gray-800">{fileTypesStr}</span> (Max: {maxSizeMb}MB)
+              </span>
+              {fileInstructions && (
+                <span className="text-primary font-medium bg-primary/5 px-2.5 py-1 rounded border border-primary/20 mt-1">
+                  💡 {fileInstructions}
+                </span>
+              )}
+            </div>
+
             {fieldValues[field.id] && (
-              <p className="text-sm text-muted-foreground mt-2">File uploaded ✓</p>
+              <p className="text-sm font-medium text-emerald-600 mt-2">File uploaded successfully ✓</p>
             )}
           </div>
         );
+      }
 
       case 'range': {
         const min = Number(options[0]) || 0;

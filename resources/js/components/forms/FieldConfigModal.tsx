@@ -192,6 +192,12 @@ export function FieldConfigModal({
   if (!config) return null;
 
   const needsOptions = ['select', 'radio', 'checkbox'].includes(config.type);
+  const isFile = config.type === 'file';
+  const fileRules = (config.validationRules || {}) as {
+    max_size_mb?: number;
+    allowed_file_types?: string;
+    file_instructions?: string;
+  };
   const isRange = config.type === 'range';
   const rangeMin = config.options?.[0] || '0';
   const rangeMax = config.options?.[1] || '100';
@@ -266,6 +272,75 @@ export function FieldConfigModal({
               onCheckedChange={(checked) => setConfig({ ...config, isRequired: checked })}
             />
           </div>
+
+          {isFile && (
+            <div className="space-y-3 p-3 bg-muted/40 rounded-lg border border-border/60">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                File Upload Settings
+              </p>
+              
+              <div className="space-y-1.5">
+                <Label htmlFor="max_size_mb" className="text-xs">Max File Size (MB)</Label>
+                <Input
+                  id="max_size_mb"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={fileRules.max_size_mb ?? 5}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 5;
+                    setConfig({
+                      ...config,
+                      validationRules: {
+                        ...(config.validationRules || {}),
+                        max_size_mb: val,
+                      },
+                    });
+                  }}
+                  placeholder="e.g. 5"
+                />
+                <p className="text-[11px] text-muted-foreground">Limit in Megabytes (Max 10MB)</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="allowed_file_types" className="text-xs">Allowed File Types</Label>
+                <Input
+                  id="allowed_file_types"
+                  value={fileRules.allowed_file_types ?? 'PDF, DOC, DOCX, JPG, PNG'}
+                  onChange={(e) => {
+                    setConfig({
+                      ...config,
+                      validationRules: {
+                        ...(config.validationRules || {}),
+                        allowed_file_types: e.target.value,
+                      },
+                    });
+                  }}
+                  placeholder="e.g. JPG, PNG or PDF, DOCX"
+                />
+                <p className="text-[11px] text-muted-foreground">Comma-separated extensions to accept</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="file_instructions" className="text-xs">Display Note / Specific Instruction</Label>
+                <Input
+                  id="file_instructions"
+                  value={fileRules.file_instructions ?? ''}
+                  onChange={(e) => {
+                    setConfig({
+                      ...config,
+                      validationRules: {
+                        ...(config.validationRules || {}),
+                        file_instructions: e.target.value,
+                      },
+                    });
+                  }}
+                  placeholder="e.g. Passport size photo (300x300px) or Recent CV"
+                />
+                <p className="text-[11px] text-muted-foreground">Instruction text shown directly below the upload field</p>
+              </div>
+            </div>
+          )}
 
           {needsOptions && (
             <div className="space-y-2">
