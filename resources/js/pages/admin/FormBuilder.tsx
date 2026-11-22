@@ -68,70 +68,6 @@ interface SeoMetaConfig {
   metaKeywords: string;
 }
 
-const INTERN_PRESETS: Record<string, {
-  name: string;
-  title: string;
-  description: string;
-  responsibilities: string;
-  requirements: string;
-  preferredSkills: string;
-  benefits: string;
-  isPaid: boolean;
-  stipendAmount: string;
-  facilities: string[];
-  fields: CanvasField[];
-}> = {
-  'software-engineering-intern': {
-    name: 'Software Engineering Intern',
-    title: 'Software Engineering Intern',
-    description: 'We are seeking a Software Engineering Intern to join our product development team. You will work alongside senior engineers to design, code, and test new features.',
-    responsibilities: '- Assist in designing, coding, and testing new software features.\n- Participate in code reviews and team standups.\n- Debug and resolve software issues.',
-    requirements: '- Basic understanding of programming fundamentals and data structures.\n- Familiarity with web technologies (HTML, CSS, JavaScript).\n- Willingness to learn and collaborate.',
-    preferredSkills: '- Experience with React or Node.js.\n- Familiarity with SQL or MongoDB.\n- Contributions to open-source projects.',
-    benefits: '- Mentorship from senior software engineers.\n- Hands-on experience with real-world products.\n- Certificate of completion and potential full-time offer.',
-    isPaid: true,
-    stipendAmount: '8000',
-    facilities: ['Flexible Work Environment', 'Mentorship Program', 'Weekly Team Lunches', 'Certificate of Completion'],
-    fields: [
-      { id: 'q-intern-git', type: 'text', label: 'GitHub Profile Link', placeholder: 'https://github.com/...', isRequired: true, options: [] },
-      { id: 'q-intern-lang', type: 'text', label: 'Primary Programming Language', placeholder: 'e.g. JavaScript, Python', isRequired: true, options: [] },
-      { id: 'q-intern-project', type: 'textarea', label: 'Briefly describe a personal coding project you built', placeholder: 'Explain what you did and why...', isRequired: true, options: [] },
-    ]
-  },
-  'ui-ux-design-intern': {
-    name: 'UI/UX Design Intern',
-    title: 'UI/UX Design Intern',
-    description: 'We are looking for a passionate UI/UX Design Intern to assist in creating intuitive interfaces for our digital products.',
-    responsibilities: '- Assist in creating wireframes, prototypes, and visual designs in Figma.\n- Participate in user research and usability testing.\n- Collaborate with product managers and engineers.',
-    requirements: '- Basic understanding of UI/UX principles and design systems.\n- Proficiency in Figma or similar design tools.\n- Good communication and collaboration skills.',
-    preferredSkills: '- Experience with interactive prototyping.\n- Basic knowledge of HTML/CSS.\n- Portfolio of personal design projects.',
-    benefits: '- Personal mentorship and feedback sessions.\n- Access to professional design tools.\n- Certificate of completion and project references.',
-    isPaid: true,
-    stipendAmount: '7000',
-    facilities: ['Flexible Work Environment', 'Figma Pro License', 'One-on-One Mentorship', 'Certificate of Completion'],
-    fields: [
-      { id: 'q-design-portfolio', type: 'text', label: 'Portfolio Link (Behance, Dribbble, Figma)', placeholder: 'https://...', isRequired: true, options: [] },
-      { id: 'q-design-tools', type: 'text', label: 'Design Tools You Know', placeholder: 'e.g. Figma, Illustrator', isRequired: true, options: [] },
-    ]
-  },
-  'marketing-intern': {
-    name: 'Marketing Intern',
-    title: 'Marketing Intern',
-    description: 'We are hiring a Marketing Intern to assist our growth and communication campaigns.',
-    responsibilities: '- Support social media management and content creation.\n- Assist in executing digital marketing campaigns.\n- Perform market research and track campaign analytics.',
-    requirements: '- Strong writing, communication, and editing skills.\n- Active presence and understanding of major social media channels.\n- Eager to learn growth marketing strategies.',
-    preferredSkills: '- Experience with Canva or basic design tools.\n- Familiarity with Google Analytics or Facebook Ads.\n- Basic video editing skills.',
-    benefits: '- Mentorship from experienced growth marketers.\n- Letter of recommendation and certification.\n- Flexible work schedule.',
-    isPaid: false,
-    stipendAmount: '',
-    facilities: ['Certificate of Completion', 'Flexible Hours', 'L&D Session Access', 'Letter of Recommendation'],
-    fields: [
-      { id: 'q-mkt-writing', type: 'text', label: 'Link to writing sample or social post you created', placeholder: 'https://...', isRequired: false, options: [] },
-      { id: 'q-mkt-interest', type: 'textarea', label: 'Why are you interested in digital marketing?', placeholder: 'Describe your passion...', isRequired: true, options: [] },
-    ]
-  }
-};
-
 export default function FormBuilder() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -177,10 +113,6 @@ export default function FormBuilder() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
-
-  // Preset Template confirmation dialog state
-  const [presetConfirmOpen, setPresetConfirmOpen] = useState(false);
-  const [selectedPresetKey, setSelectedPresetKey] = useState('');
 
   // Auto-Screening state
   const [autoScreening, setAutoScreening] = useState<AutoScreeningRules>({
@@ -353,37 +285,6 @@ export default function FormBuilder() {
 
   const handleDeleteField = (fieldId: string) => {
     setFields(fields.filter((f) => f.id !== fieldId));
-  };
-
-  const handleLoadPreset = () => {
-    const preset = INTERN_PRESETS[selectedPresetKey];
-    if (!preset) return;
-
-    setFormTitle(preset.title);
-    setFormTitle(preset.title);
-    setFormDescription(preset.description);
-    setFormResponsibilities(preset.responsibilities || '');
-    setFormRequirements(preset.requirements || '');
-    setFormPreferredSkills(preset.preferredSkills || '');
-    setFormBenefits(preset.benefits || '');
-    setJobType('Internship');
-    setJobLocation('');
-    setOfficeTiming('');
-    setWorkingDays('');
-    setIsPaid(preset.isPaid);
-    setStipendAmount(preset.stipendAmount);
-    setFacilities(preset.facilities);
-    setFields(preset.fields);
-    setFormSlug(generateSlug(preset.title));
-
-    setSeoMeta({
-      metaTitle: `${preset.title} Application`,
-      metaDescription: `Apply for the ${preset.title} internship position. Join our mentorship-focused team and grow your skills.`,
-      metaKeywords: `${preset.title.toLowerCase()}, internship, hire, career`,
-    });
-
-    toast.success(`${preset.name} preset loaded successfully`);
-    setPresetConfirmOpen(false);
   };
 
   const handleGenerateAI = async () => {
@@ -963,40 +864,6 @@ export default function FormBuilder() {
                 </TabsContent>
 
                 <TabsContent value="rules" className="mt-4 space-y-4">
-                  {/* Presets Card */}
-                  <Card className="border-slate-100 dark:border-zinc-800 shadow-sm bg-gradient-to-r from-amber-500/5 to-primary/5">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-amber-500" />
-                        Intern Presets
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        Instantly populate internship details, stipend, perks, and screening questions.
-                      </p>
-                      <Select value={selectedPresetKey} onValueChange={setSelectedPresetKey}>
-                        <SelectTrigger className="h-9 text-xs bg-background">
-                          <SelectValue placeholder="Select an intern role preset" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(INTERN_PRESETS).map(([key, p]) => (
-                            <SelectItem key={key} value={key}>{p.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {selectedPresetKey && (
-                        <Button
-                          type="button"
-                          className="w-full text-xs h-8 bg-amber-500 hover:bg-amber-600 text-white font-semibold"
-                          onClick={() => setPresetConfirmOpen(true)}
-                        >
-                          Apply Preset Template
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-
                   {/* Compensation & Benefits */}
                   <Card className="border-slate-100 dark:border-zinc-800 shadow-sm">
                     <CardHeader className="pb-3">
@@ -1182,24 +1049,6 @@ export default function FormBuilder() {
           </DragOverlay>
         </DndContext>
       </div>
-
-      {/* Preset template confirmation dialog */}
-      <AlertDialog open={presetConfirmOpen} onOpenChange={setPresetConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Applying this preset template will overwrite the title, description, stipend status, perks, and custom form questions with pre-configured settings.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLoadPreset} className="bg-primary text-white hover:bg-primary/95">
-              Load Preset Template
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* AI generator dialog */}
       <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
