@@ -1,6 +1,6 @@
 {
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-DE8SBqiN.js",
+    "file": "assets/index.es-DW7K8doA.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
@@ -55,7 +55,7 @@
     "src": "resources/js/assets/patterns/robotics-icons.png"
   },
   "resources/js/main.tsx": {
-    "file": "assets/main-BgJ71KOo.js",
+    "file": "assets/main-Bg42p5ho.js",
     "name": "main",
     "src": "resources/js/main.tsx",
     "isEntry": true,
@@ -64,7 +64,7 @@
       "node_modules/canvg/lib/index.es.js"
     ],
     "css": [
-      "assets/main-BGwAkWZi.css"
+      "assets/main-CQ3ZZcGo.css"
     ],
     "assets": [
       "assets/circuit-pattern-yzZGUSCN.png",

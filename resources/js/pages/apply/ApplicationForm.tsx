@@ -467,7 +467,7 @@ export default function ApplicationFormPage() {
       }
 
       case 'skills': {
-        let skillsConfig: { departmentId: string; skills: Array<{ id: string; name: string; enabled: boolean; points: number }>; departments?: Record<string, Array<{ id: string; name: string; enabled: boolean; points: number }>> } | null = null;
+        let skillsConfig: { departmentId: string; skills: Array<{ id: string; name: string; enabled: boolean; points: number }>; departments?: Record<string, Array<{ id: string; name: string; enabled: boolean; points: number }>>; hidePoints?: boolean } | null = null;
         try {
           if (options) {
             const raw = Array.isArray(options) ? options[0] : options;
@@ -478,6 +478,8 @@ export default function ApplicationFormPage() {
         } catch (e) {
           skillsConfig = null;
         }
+
+        const hidePoints = Boolean(skillsConfig?.hidePoints);
 
         let enabledSkills = [];
 
@@ -528,7 +530,7 @@ export default function ApplicationFormPage() {
                         }
                       />
                       <Label htmlFor={`${field.id}-${skill.id}`} className="cursor-pointer text-sm font-medium">
-                        {skill.name} <span className="text-xs text-muted-foreground">({skill.points} pts)</span>
+                        {skill.name} {!hidePoints && <span className="text-xs text-muted-foreground">({skill.points} pts)</span>}
                       </Label>
                     </div>
                   ))}

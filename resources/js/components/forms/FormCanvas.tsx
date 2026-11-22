@@ -133,22 +133,38 @@ function SortableField({ field, onEdit, onDelete }: SortableFieldProps) {
           </div>
         );
       }
-      case 'skills':
+      case 'skills': {
+        let hidePoints = false;
+        try {
+          if (field.options?.[0]) {
+            const parsed = typeof field.options[0] === 'string' ? JSON.parse(field.options[0]) : field.options[0];
+            hidePoints = Boolean(parsed?.hidePoints);
+          }
+        } catch (e) {}
+
         return (
           <div className="space-y-2 border border-dashed rounded p-3 bg-muted/30">
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-              Department Skills Checkboxes (Loaded dynamically at runtime)
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                Department Skills Checkboxes (Loaded dynamically at runtime)
+              </p>
+              {hidePoints && (
+                <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
+                  Points Hidden
+                </span>
+              )}
+            </div>
             <div className="space-y-1">
               {['Skill A', 'Skill B', 'Skill C'].map((skill, i) => (
                 <label key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <input type="checkbox" disabled />
-                  {skill} (Value: 100 / N points)
+                  {skill} {hidePoints ? '' : '(Value: 100 / N points)'}
                 </label>
               ))}
             </div>
           </div>
         );
+      }
       default:
         return (
           <input

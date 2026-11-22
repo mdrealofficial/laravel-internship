@@ -46,6 +46,7 @@ export function FieldConfigModal({
     departmentId: string;
     skills: SkillItem[];
     departments?: Record<string, SkillItem[]>;
+    hidePoints?: boolean;
   }
 
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
@@ -482,6 +483,32 @@ export function FieldConfigModal({
                       </tbody>
                     </table>
                   </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border border-border/60">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="hide-points-switch" className="text-sm font-medium">Hide Points from Applicants</Label>
+                      <p className="text-[11px] text-muted-foreground">When enabled, applicants won't see "(10 pts)" next to the skill name.</p>
+                    </div>
+                    <Switch
+                      id="hide-points-switch"
+                      checked={skillsConfig.hidePoints ?? false}
+                      onCheckedChange={(checked) => {
+                        const newConfig = {
+                          ...skillsConfig,
+                          hidePoints: checked,
+                        };
+                        setSkillsConfig(newConfig);
+                        setConfig((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                options: [JSON.stringify(newConfig)],
+                              }
+                            : null
+                        );
+                      }}
+                    />
+                  </div>
+
                   <p className="text-[11px] text-muted-foreground">
                     Tip: Score is calculated dynamically relative to total points of enabled skills. Current total: {skillsConfig.skills.reduce((sum, s) => sum + (s.enabled ? s.points : 0), 0)}
                   </p>
