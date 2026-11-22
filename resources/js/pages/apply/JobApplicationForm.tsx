@@ -451,17 +451,31 @@ export default function JobApplicationFormPage() {
           <div className="border-2 border-dashed border-input rounded-md p-6 text-center">
             <Input
               type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
+
+                if (file.size > 10 * 1024 * 1024) {
+                  toast.error('File size cannot exceed 10MB');
+                  return;
+                }
+
+                const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
+                const ext = file.name.split('.').pop()?.toLowerCase();
+                if (!ext || !allowedExtensions.includes(ext)) {
+                  toast.error('Unsupported file format. Please upload PDF, Word document, or Image.');
+                  return;
+                }
                 
-                const fileName = `${Date.now()}-${file.name}`;
+                const sanitizedName = file.name.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+                const fileName = `${Date.now()}-${sanitizedName}`;
                 const { data, error } = await supabase.storage
                   .from('company-assets')
                   .upload(`applications/${fileName}`, file);
                 
                 if (error) {
-                  toast.error('Failed to upload file');
+                  toast.error(error.message || 'Failed to upload file');
                   return;
                 }
                 
