@@ -233,6 +233,15 @@ export function FieldConfigModal({
     });
   };
 
+  const handleUpdateOption = (index: number, value: string) => {
+    const updated = [...config.options];
+    updated[index] = value;
+    setConfig({
+      ...config,
+      options: updated,
+    });
+  };
+
   const handleSave = () => {
     onSave(config);
     onClose();
@@ -345,16 +354,25 @@ export function FieldConfigModal({
 
           {needsOptions && (
             <div className="space-y-2">
-              <Label>Options</Label>
+              <div className="flex items-center justify-between">
+                <Label>Options</Label>
+                <span className="text-[11px] text-muted-foreground">Click any option to edit</span>
+              </div>
               <div className="space-y-2">
                 {config.options.map((option, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Input value={option} disabled className="flex-1" />
+                    <Input
+                      value={option}
+                      onChange={(e) => handleUpdateOption(index, e.target.value)}
+                      placeholder={`Option ${index + 1}`}
+                      className="flex-1"
+                    />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveOption(index)}
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -364,7 +382,7 @@ export function FieldConfigModal({
                   <Input
                     value={newOption}
                     onChange={(e) => setNewOption(e.target.value)}
-                    placeholder="Add option"
+                    placeholder="Add new option..."
                     className="flex-1"
                     onKeyDown={(e) => e.key === 'Enter' && handleAddOption()}
                   />
